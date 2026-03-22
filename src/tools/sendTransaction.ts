@@ -1,9 +1,10 @@
-import { Address, parseEther } from "viem";
-import { createViemWalletClient } from "../viem/createViemWalletClient";
-import { ToolConfig } from "./allTools";
+import { parseEther } from "viem";
+import { ToolConfig } from "./allTools.js";
+import { getSigner } from "../signers/index.js";
+import { updateContext } from "../context/sessionContext.js";
 
 interface SendTransactionArgs {
-  to: Address;
+  to: string;
   value?: string;
 }
 
@@ -18,7 +19,6 @@ export const sendTransactionTool: ToolConfig<SendTransactionArgs> = {
         properties: {
           to: {
             type: "string",
-            pattern: "^0x[a-fA-F0-9]{40}$",
             description: "The recipient wallet address",
           },
           value: {
@@ -31,13 +31,20 @@ export const sendTransactionTool: ToolConfig<SendTransactionArgs> = {
     },
   },
 
-  handler: async ({ to, value }: SendTransactionArgs) => {
+  handler: async ({ to, value }: SendTransactionArgs): Promise<string> => {
     try {
-      const walletClient = createViemWalletClient();
-      const txHash = await walletClient.sendTransaction({
-        to,
+      const signer = getSigner();
+      const txHash = await signer.sendTransaction({
+        to: to as `0x${string}`,
         value: parseEther(value ?? "0.01"),
       });
+
+      updateContext({
+        lastRecipient: to,
+        lastAmount: value ?? "0.01",
+        lastTxHash: txHash,
+      });
+
       return `Transaction sent successfully. Tx Hash: ${txHash}`;
     } catch (error) {
       return `Failed to send transaction: ${error}`;

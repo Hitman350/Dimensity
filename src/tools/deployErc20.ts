@@ -1,9 +1,15 @@
 import { ToolConfig } from "./allTools.js";
-import { createViemWalletClient } from "../viem/createViemWalletClient.js";
+import { getSigner } from "../signers/index.js";
 import { ERC20_ABI, ERC20_BYTECODE } from "../const/contractDetails.js";
-import { createViemPublicClient } from "../viem/createViemPublicClient.js";
+import { updateContext } from "../context/sessionContext.js";
 
-export const deployErc20Tool: ToolConfig = {
+interface DeployErc20Args {
+  name: string;
+  symbol: string;
+  initialSupply?: string;
+}
+
+export const deployErc20Tool: ToolConfig<DeployErc20Args> = {
   definition: {
     type: "function",
     function: {
@@ -23,34 +29,34 @@ export const deployErc20Tool: ToolConfig = {
           initialSupply: {
             type: "string",
             description:
-              'Initial supply in natural language (e.g., "one million", "half a billion", "10k", "1.5M tokens"). Interpret the amount and format it into a number amount and then convert it into wei. Defaults to 1 billion tokens if not specified.',
+              'Initial supply amount. Defaults to 1 billion tokens if not specified.',
           },
         },
         required: ["name", "symbol"],
       },
     },
   },
-  handler: async (args: {
-    name: string;
-    symbol: string;
-    initialSupply?: string;
-  }) => {
-    const baseNumber = parseFloat(args.initialSupply || "1000000000"); // 1 billion default
 
-    const publicClient = createViemPublicClient();
-    const walletClient = createViemWalletClient();
+  handler: async ({
+    name,
+    symbol,
+    initialSupply,
+  }: DeployErc20Args): Promise<string> => {
+    try {
+      const signer = getSigner();
+      const baseNumber = parseFloat(initialSupply || "1000000000");
 
-    const hash = await walletClient.deployContract({
-      account: walletClient.account,
-      abi: ERC20_ABI,
-      bytecode: ERC20_BYTECODE,
-      args: [args.name, args.symbol, baseNumber],
-    });
+      const { contractAddress } = await signer.deployContract({
+        abi: ERC20_ABI,
+        bytecode: ERC20_BYTECODE,
+        args: [name, symbol, baseNumber],
+      });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      updateContext({ lastContractAddress: contractAddress });
 
-    console.log(`Contract deployed at address: ${receipt.contractAddress}`);
-
-    return `${args.name} (${args.symbol}) token deployed successfully at: ${receipt.contractAddress}`;
+      return `${name} (${symbol}) token deployed successfully at: ${contractAddress}`;
+    } catch (error) {
+      return `Failed to deploy contract: ${error}`;
+    }
   },
 };

@@ -1,13 +1,12 @@
-import { createViemWalletClient } from "../viem/createViemWalletClient";
-import { ToolConfig } from "./allTools";
+import { ToolConfig } from "./allTools.js";
+import { getSigner } from "../signers/index.js";
 
 export const getWalletAddressTool: ToolConfig = {
   definition: {
     type: "function",
     function: {
       name: "get_wallet_address",
-      description:
-        "Get your own connected wallet address from the viem wallet client.",
+      description: "Get your own connected wallet address",
       parameters: {
         type: "object",
         properties: {},
@@ -17,6 +16,7 @@ export const getWalletAddressTool: ToolConfig = {
   },
 
   handler: async () => {
-    const walletClient = createViemWalletClient();
+    const signer = getSigner();
+    return signer.getAddress();
   },
 };
