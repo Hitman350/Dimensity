@@ -1,4 +1,5 @@
-import { ToolConfig } from "./allTools.js";
+import { Injectable } from '@nestjs/common';
+import type { ToolDefinition, ToolService } from './tool.interface';
 
 // 60-second in-memory cache — prevents CoinGecko rate limit (30 calls/min)
 let priceCache: {
@@ -10,24 +11,22 @@ let priceCache: {
 const CACHE_TTL = 60_000;
 
 const COINGECKO_URL =
-  "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,eur&include_24hr_change=true";
+  'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,eur&include_24hr_change=true';
 
-export const getEthPriceTool: ToolConfig = {
-  definition: {
-    type: "function",
-    function: {
-      name: "get_eth_price",
-      description:
-        "Fetches the current ETH price in USD and EUR from CoinGecko. Use this to convert ETH amounts to fiat values.",
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-      },
+@Injectable()
+export class GetEthPriceService implements ToolService {
+  readonly definition: ToolDefinition = {
+    name: 'get_eth_price',
+    description:
+      'Fetches the current ETH price in USD and EUR from CoinGecko. Use this to convert ETH amounts to fiat values.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
-  },
+  };
 
-  handler: async (): Promise<string> => {
+  async execute(): Promise<string> {
     try {
       const now = Date.now();
 
@@ -38,7 +37,7 @@ export const getEthPriceTool: ToolConfig = {
           eth_eur: `€${priceCache.eur.toLocaleString()}`,
           change_24h: priceCache.usd_24h_change
             ? `${priceCache.usd_24h_change.toFixed(2)}%`
-            : "N/A",
+            : 'N/A',
           cached: true,
         });
       }
@@ -47,8 +46,8 @@ export const getEthPriceTool: ToolConfig = {
 
       if (!response.ok) {
         return JSON.stringify({
-          error: "CoinGecko API unavailable",
-          message: "Unable to fetch ETH price right now. Try again shortly.",
+          error: 'CoinGecko API unavailable',
+          message: 'Unable to fetch ETH price right now. Try again shortly.',
         });
       }
 
@@ -67,12 +66,12 @@ export const getEthPriceTool: ToolConfig = {
         eth_eur: `€${eth.eur.toLocaleString()}`,
         change_24h: eth.usd_24h_change
           ? `${eth.usd_24h_change.toFixed(2)}%`
-          : "N/A",
+          : 'N/A',
         cached: false,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       return `Error fetching ETH price: ${msg}`;
     }
-  },
-};
+  }
+}

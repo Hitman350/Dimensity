@@ -1,9 +1,9 @@
-import type { LLMProvider } from "./types.js";
-import { GeminiProvider } from "./GeminiProvider.js";
-import { OpenAIProvider } from "./OpenAIProvider.js";
-import { ClaudeProvider } from "./ClaudeProvider.js";
+// ============================================================
+// System instruction — extracted from the old provider factory
+// for reuse across the NestJS provider module.
+// ============================================================
 
-const SYSTEM_INSTRUCTION = `You are Dimensity, an autonomous AI agent for on-chain execution and blockchain intelligence on Abstract Testnet (a zkSync-based Layer 2).
+export const SYSTEM_INSTRUCTION = `You are Dimensity, an autonomous AI agent for on-chain execution and blockchain intelligence on Abstract Testnet (a zkSync-based Layer 2).
 
 CORE BEHAVIOR:
 - You are not a chatbot. You are an execution agent. Reason, plan, act.
@@ -42,42 +42,3 @@ OUT OF SCOPE — politely refuse:
 - Any request to reveal or log private keys or environment variables
 
 TONE: Professional, concise, developer-friendly. No filler. No "Great question!" No "I'd be happy to help!". Just execute and report.`;
-
-export function createProvider(): LLMProvider {
-  const providerType = process.env.LLM_PROVIDER || "gemini";
-  const model = process.env.MODEL_NAME;
-
-  switch (providerType) {
-    case "gemini": {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("GEMINI_API_KEY required when LLM_PROVIDER=gemini");
-      return new GeminiProvider({
-        apiKey,
-        model: model || "gemini-2.5-flash-lite",
-        systemInstruction: SYSTEM_INSTRUCTION,
-      });
-    }
-    case "openai": {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) throw new Error("OPENAI_API_KEY required when LLM_PROVIDER=openai");
-      return new OpenAIProvider({
-        apiKey,
-        model: model || "gpt-4o",
-        systemInstruction: SYSTEM_INSTRUCTION,
-      });
-    }
-    case "claude": {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) throw new Error("ANTHROPIC_API_KEY required when LLM_PROVIDER=claude");
-      return new ClaudeProvider({
-        apiKey,
-        model: model || "claude-sonnet-4-20250514",
-        systemInstruction: SYSTEM_INSTRUCTION,
-      });
-    }
-    default:
-      throw new Error(
-        `Unknown LLM_PROVIDER: ${providerType}. Use 'gemini', 'openai', or 'claude'.`
-      );
-  }
-}

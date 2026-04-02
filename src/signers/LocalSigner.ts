@@ -1,8 +1,8 @@
-import { createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { abstractTestnet } from "viem/chains";
-import { eip712WalletActions } from "viem/zksync";
-import { createViemPublicClient } from "../viem/createViemPublicClient.js";
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { abstractTestnet } from 'viem/chains';
+import { eip712WalletActions } from 'viem/zksync';
+import { createPublicClient } from 'viem';
 import type {
   Signer,
   TransactionParams,
@@ -10,7 +10,7 @@ import type {
   DeployResult,
   EstimateGasParams,
   GasEstimate,
-} from "./types.js";
+} from './types';
 
 /**
  * Local development signer — wraps viem wallet client with EIP-712 support.
@@ -50,17 +50,23 @@ export class LocalSigner implements Signer {
       args: params.args,
     });
 
-    const publicClient = createViemPublicClient();
+    const publicClient = createPublicClient({
+      chain: abstractTestnet,
+      transport: http(),
+    });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
     return {
       hash,
-      contractAddress: receipt.contractAddress || "",
+      contractAddress: receipt.contractAddress || '',
     };
   }
 
   async estimateGas(params: EstimateGasParams): Promise<GasEstimate> {
-    const publicClient = createViemPublicClient();
+    const publicClient = createPublicClient({
+      chain: abstractTestnet,
+      transport: http(),
+    });
 
     const [gasUnits, gasPrice] = await Promise.all([
       publicClient.estimateGas({

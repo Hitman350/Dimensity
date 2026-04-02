@@ -1,62 +1,60 @@
-import { ToolConfig } from "./allTools.js";
-import { getSigner } from "../signers/index.js";
-import { ERC20_ABI, ERC20_BYTECODE } from "../const/contractDetails.js";
-import { updateContext } from "../context/sessionContext.js";
+import { Injectable, Inject } from '@nestjs/common';
+import { SIGNER } from '../signers/signer.module';
+import type { Signer } from '../signers/types';
+import { SessionContextService } from '../context/sessionContext';
+import { ERC20_ABI, ERC20_BYTECODE } from '../const/contractDetails';
+import type { ToolDefinition, ToolService } from './tool.interface';
 
-interface DeployErc20Args {
-  name: string;
-  symbol: string;
-  initialSupply?: string;
-}
+@Injectable()
+export class DeployErc20Service implements ToolService {
+  constructor(
+    @Inject(SIGNER) private readonly signer: Signer,
+    private readonly context: SessionContextService,
+  ) {}
 
-export const deployErc20Tool: ToolConfig<DeployErc20Args> = {
-  definition: {
-    type: "function",
-    function: {
-      name: "deploy_erc20",
-      description: "Deploy a new ERC20 token contract",
-      parameters: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-            description: "The name of the token",
-          },
-          symbol: {
-            type: "string",
-            description: "The symbol of the token",
-          },
-          initialSupply: {
-            type: "string",
-            description:
-              'Initial supply amount. Defaults to 1 billion tokens if not specified.',
-          },
+  readonly definition: ToolDefinition = {
+    name: 'deploy_erc20',
+    description: 'Deploy a new ERC20 token contract',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'The name of the token',
         },
-        required: ["name", "symbol"],
+        symbol: {
+          type: 'string',
+          description: 'The symbol of the token',
+        },
+        initialSupply: {
+          type: 'string',
+          description:
+            'Initial supply amount. Defaults to 1 billion tokens if not specified.',
+        },
       },
+      required: ['name', 'symbol'],
     },
-  },
+  };
 
-  handler: async ({
-    name,
-    symbol,
-    initialSupply,
-  }: DeployErc20Args): Promise<string> => {
+  async execute(args: {
+    name: string;
+    symbol: string;
+    initialSupply?: string;
+  }): Promise<string> {
     try {
-      const signer = getSigner();
-      const baseNumber = parseFloat(initialSupply || "1000000000");
+      const baseNumber = parseFloat(args.initialSupply || '1000000000');
 
-      const { contractAddress } = await signer.deployContract({
+      const { contractAddress } = await this.signer.deployContract({
         abi: ERC20_ABI,
         bytecode: ERC20_BYTECODE,
-        args: [name, symbol, baseNumber],
+        args: [args.name, args.symbol, baseNumber],
       });
 
-      updateContext({ lastContractAddress: contractAddress });
+      this.context.updateContext({ lastContractAddress: contractAddress });
 
-      return `${name} (${symbol}) token deployed successfully at: ${contractAddress}`;
+      return `${args.name} (${args.symbol}) token deployed successfully at: ${contractAddress}`;
     } catch (error) {
       return `Failed to deploy contract: ${error}`;
     }
-  },
-};
+  }
+}

@@ -1,44 +1,43 @@
-import { ToolConfig } from "./allTools.js";
-import { createViemPublicClient } from "../viem/createViemPublicClient.js";
+import { Injectable } from '@nestjs/common';
+import { BlockchainService } from '../blockchain/blockchain.service';
+import type { ToolDefinition, ToolService } from './tool.interface';
 
-interface ExplainTransactionArgs {
-  tx_hash: string;
-}
+@Injectable()
+export class ExplainTransactionService implements ToolService {
+  constructor(private readonly blockchain: BlockchainService) {}
 
-export const explainTransactionTool: ToolConfig<ExplainTransactionArgs> = {
-  definition: {
-    type: "function",
-    function: {
-      name: "explain_transaction",
-      description:
-        "Fetches a transaction by hash and returns a full breakdown: status, sender, recipient, value transferred, gas used, gas cost in ETH, block number, and whether a contract was deployed.",
-      parameters: {
-        type: "object",
-        properties: {
-          tx_hash: {
-            type: "string",
-            description: "The transaction hash (0x...)",
-          },
+  readonly definition: ToolDefinition = {
+    name: 'explain_transaction',
+    description:
+      'Fetches a transaction by hash and returns a full breakdown: status, sender, recipient, value transferred, gas used, gas cost in ETH, block number, and whether a contract was deployed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        tx_hash: {
+          type: 'string',
+          description: 'The transaction hash (0x...)',
         },
-        required: ["tx_hash"],
       },
+      required: ['tx_hash'],
     },
-  },
+  };
 
-  handler: async ({ tx_hash }: ExplainTransactionArgs): Promise<string> => {
+  async execute(args: { tx_hash: string }): Promise<string> {
     try {
-      const client = createViemPublicClient();
+      const client = this.blockchain.getPublicClient();
 
       const [tx, receipt] = await Promise.all([
-        client.getTransaction({ hash: tx_hash as `0x${string}` }),
-        client.getTransactionReceipt({ hash: tx_hash as `0x${string}` }),
+        client.getTransaction({ hash: args.tx_hash as `0x${string}` }),
+        client.getTransactionReceipt({
+          hash: args.tx_hash as `0x${string}`,
+        }),
       ]);
 
       const gasCostWei = receipt.gasUsed * receipt.effectiveGasPrice;
       const gasCostEth = (Number(gasCostWei) / 1e18).toFixed(6);
       const valueEth = (Number(tx.value) / 1e18).toFixed(6);
       const status =
-        receipt.status === "success" ? "✅ Success" : "❌ Failed";
+        receipt.status === 'success' ? '✅ Success' : '❌ Failed';
 
       return JSON.stringify({
         status,
@@ -49,11 +48,11 @@ export const explainTransactionTool: ToolConfig<ExplainTransactionArgs> = {
         gas_cost: `${gasCostEth} ETH`,
         block: receipt.blockNumber.toString(),
         contract_deployed: receipt.contractAddress ?? null,
-        explorer: `https://explorer.testnet.abs.xyz/tx/${tx_hash}`,
+        explorer: `https://explorer.testnet.abs.xyz/tx/${args.tx_hash}`,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       return `Error fetching transaction: ${msg}`;
     }
-  },
-};
+  }
+}

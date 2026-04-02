@@ -1,22 +1,23 @@
-import { ToolConfig } from "./allTools.js";
-import { getSigner } from "../signers/index.js";
+import { Injectable, Inject } from '@nestjs/common';
+import { SIGNER } from '../signers/signer.module';
+import type { Signer } from '../signers/types';
+import type { ToolDefinition, ToolService } from './tool.interface';
 
-export const getWalletAddressTool: ToolConfig = {
-  definition: {
-    type: "function",
-    function: {
-      name: "get_wallet_address",
-      description: "Get your own connected wallet address",
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-      },
+@Injectable()
+export class GetWalletAddressService implements ToolService {
+  constructor(@Inject(SIGNER) private readonly signer: Signer) {}
+
+  readonly definition: ToolDefinition = {
+    name: 'get_wallet_address',
+    description: 'Get your own connected wallet address',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
-  },
+  };
 
-  handler: async () => {
-    const signer = getSigner();
-    return signer.getAddress();
-  },
-};
+  async execute(): Promise<string> {
+    return this.signer.getAddress();
+  }
+}

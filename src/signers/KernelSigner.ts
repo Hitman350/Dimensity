@@ -5,7 +5,7 @@ import type {
   DeployResult,
   EstimateGasParams,
   GasEstimate,
-} from "./types.js";
+} from './types';
 
 /**
  * Placeholder for ZeroDev Kernel signer (ERC-4337 account abstraction).
@@ -14,7 +14,7 @@ import type {
  */
 export class KernelSigner implements Signer {
   private fail(): never {
-    throw new Error("KernelSigner (ZeroDev AA) not yet implemented");
+    throw new Error('KernelSigner (ZeroDev AA) not yet implemented');
   }
 
   async getAddress(): Promise<string> {

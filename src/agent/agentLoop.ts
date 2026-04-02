@@ -1,98 +1,95 @@
+// ============================================================
+// AgentService — Injectable replacement for agentLoop.ts.
+// Recursive LLM tool-calling loop using DI-injected
+// LLM provider and tool registry.
+// ============================================================
+
+import { Injectable, Inject } from '@nestjs/common';
+import { LLM_PROVIDER } from '../providers/provider.module';
 import type {
   LLMProvider,
   ConversationMessage,
   ToolDeclaration,
-} from "../providers/types.js";
-import { tools as toolRegistry } from "../tools/allTools.js";
+} from '../providers/types';
+import { ToolRegistryService } from '../tools/tool-registry.service';
 
-/**
- * Provider-agnostic agent loop. Sends user message, processes function
- * calls recursively until the model produces a final text response.
- *
- * History is mutated in place — it persists across turns for session
- * continuity. Tools are passed per call, not stored.
- */
-export async function agentLoop(
-  provider: LLMProvider,
-  tools: ToolDeclaration[],
-  history: ConversationMessage[],
-  userMessage: string
-): Promise<string> {
-  // Append user message to history
-  history.push({ role: "user", content: userMessage });
+@Injectable()
+export class AgentService {
+  constructor(
+    @Inject(LLM_PROVIDER) private readonly provider: LLMProvider,
+    private readonly toolRegistry: ToolRegistryService,
+  ) {}
 
-  let response = await provider.chat(history, tools);
-  let lastToolResults: string[] = [];
+  /**
+   * Provider-agnostic agent loop. Sends user message, processes function
+   * calls recursively until the model produces a final text response.
+   *
+   * History is mutated in place — it persists across turns for session
+   * continuity. Tools are resolved from the registry.
+   */
+  async processMessage(
+    history: ConversationMessage[],
+    userMessage: string,
+  ): Promise<string> {
+    const tools: ToolDeclaration[] = this.toolRegistry.getToolDeclarations();
 
-  // Recursive loop — process function calls until text response
-  while (response.functionCalls.length > 0) {
-    // Add model's response to history (with function calls)
-    history.push({
-      role: "model",
-      content: response.text || "",
-      functionCalls: response.functionCalls,
-    });
+    // Append user message to history
+    history.push({ role: 'user', content: userMessage });
 
-    lastToolResults = [];
+    let response = await this.provider.chat(history, tools);
+    let lastToolResults: string[] = [];
 
-    // Execute all tool calls concurrently
-    const toolResults = await Promise.all(
-      response.functionCalls.map(async (fc) => {
-        const toolConfig = toolRegistry[fc.name];
+    // Recursive loop — process function calls until text response
+    while (response.functionCalls.length > 0) {
+      // Add model's response to history (with function calls)
+      history.push({
+        role: 'model',
+        content: response.text || '',
+        functionCalls: response.functionCalls,
+      });
 
-        if (!toolConfig) {
-          console.error(`Tool ${fc.name} not found in registry`);
-          const errorResult = `Tool ${fc.name} not found`;
-          lastToolResults.push(errorResult);
-          return { name: fc.name, content: errorResult, callId: fc.id };
-        }
+      lastToolResults = [];
 
-        try {
-          const output = await toolConfig.handler(fc.args as never);
-          const result = String(output);
+      // Execute all tool calls concurrently
+      const toolResults = await Promise.all(
+        response.functionCalls.map(async (fc) => {
+          const result = await this.toolRegistry.executeTool(fc.name, fc.args);
           lastToolResults.push(result);
           return { name: fc.name, content: result, callId: fc.id };
-        } catch (error) {
-          const msg =
-            error instanceof Error ? error.message : String(error);
-          console.error(`Tool ${fc.name} failed: ${msg}`);
-          const errorResult = `Error: ${msg}`;
-          lastToolResults.push(errorResult);
-          return { name: fc.name, content: errorResult, callId: fc.id };
-        }
-      })
-    );
+        }),
+      );
 
-    // Append tool results to history
-    for (const result of toolResults) {
-      history.push({
-        role: "tool",
-        name: result.name,
-        content: result.content,
-        callId: result.callId,
-      });
+      // Append tool results to history
+      for (const result of toolResults) {
+        history.push({
+          role: 'tool',
+          name: result.name,
+          content: result.content,
+          callId: result.callId,
+        });
+      }
+
+      // Call the provider again
+      response = await this.provider.chat(history, tools);
     }
 
-    // Call the provider again
-    response = await provider.chat(history, tools);
+    // Extract text response, fallback to tool results if empty
+    const text = response.text?.trim();
+
+    if (text) {
+      history.push({ role: 'model', content: text });
+      return text;
+    }
+
+    // Fallback: if model returned empty text, use the last tool results
+    if (lastToolResults.length > 0) {
+      const fallback = lastToolResults.join('\n');
+      history.push({ role: 'model', content: fallback });
+      return fallback;
+    }
+
+    const noResponse = 'No response from model.';
+    history.push({ role: 'model', content: noResponse });
+    return noResponse;
   }
-
-  // Extract text response, fallback to tool results if empty
-  const text = response.text?.trim();
-
-  if (text) {
-    history.push({ role: "model", content: text });
-    return text;
-  }
-
-  // Fallback: if model returned empty text, use the last tool results
-  if (lastToolResults.length > 0) {
-    const fallback = lastToolResults.join("\n");
-    history.push({ role: "model", content: fallback });
-    return fallback;
-  }
-
-  const noResponse = "No response from model.";
-  history.push({ role: "model", content: noResponse });
-  return noResponse;
 }

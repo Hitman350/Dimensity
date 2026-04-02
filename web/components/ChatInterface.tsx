@@ -4,6 +4,10 @@ import { useChat } from "@ai-sdk/react";
 import { useRef, useEffect } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { Header } from "./Header";
+import ConfirmationModal from "./ConfirmationModal";
+
+// Tool names that require user confirmation before execution
+const CONFIRMABLE_TOOLS = ["send_transaction", "deploy_erc20"];
 
 export function ChatInterface() {
     const {
@@ -13,6 +17,7 @@ export function ChatInterface() {
         handleSubmit,
         isLoading,
         error,
+        addToolResult,
     } = useChat();
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -23,6 +28,41 @@ export function ChatInterface() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, isLoading]);
+
+    // Find pending tool calls that need confirmation
+    const pendingToolCall = messages
+        .flatMap((m) =>
+            (m.toolInvocations ?? []).map((t) => ({
+                ...t,
+                messageId: m.id,
+            }))
+        )
+        .find(
+            (t) =>
+                t.state === "call" &&
+                CONFIRMABLE_TOOLS.includes(t.toolName) &&
+                !("result" in t && t.result !== undefined)
+        );
+
+    const handleConfirm = (toolCallId: string, result: string) => {
+        addToolResult({ toolCallId, result });
+    };
+
+    const handleCancel = (toolCallId: string) => {
+        addToolResult({
+            toolCallId,
+            result: "User cancelled this action.",
+        });
+    };
+
+    const suggestions = [
+        "What is my wallet address?",
+        "Check my balance",
+        "Deploy an ERC-20 token",
+        "Show my recent transactions",
+        "What's ETH worth right now?",
+        "What's my balance in USD?",
+    ];
 
     return (
         <div className="flex flex-col h-full">
@@ -57,12 +97,7 @@ export function ChatInterface() {
                                 describe what you need in plain English.
                             </p>
                             <div className="grid grid-cols-2 gap-2 mt-6 text-xs">
-                                {[
-                                    "What is my wallet address?",
-                                    "Check my balance",
-                                    "Deploy an ERC-20 token",
-                                    "Scan a contract for risks",
-                                ].map((suggestion) => (
+                                {suggestions.map((suggestion) => (
                                     <button
                                         key={suggestion}
                                         type="button"
@@ -72,12 +107,12 @@ export function ChatInterface() {
                                                     window.HTMLInputElement.prototype,
                                                     "value"
                                                 )?.set;
-                                            const input = document.querySelector(
+                                            const el = document.querySelector(
                                                 "#chat-input"
                                             ) as HTMLInputElement;
-                                            if (input && nativeInputValueSetter) {
-                                                nativeInputValueSetter.call(input, suggestion);
-                                                input.dispatchEvent(
+                                            if (el && nativeInputValueSetter) {
+                                                nativeInputValueSetter.call(el, suggestion);
+                                                el.dispatchEvent(
                                                     new Event("input", { bubbles: true })
                                                 );
                                             }
@@ -174,6 +209,15 @@ export function ChatInterface() {
                     </button>
                 </form>
             </div>
+
+            {/* Confirmation Modal — shown when a tool call needs user approval */}
+            {pendingToolCall && (
+                <ConfirmationModal
+                    toolCall={pendingToolCall}
+                    onConfirm={handleConfirm}
+                    onCancel={handleCancel}
+                />
+            )}
         </div>
     );
 }

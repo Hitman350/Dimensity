@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  wallets    Wallet[]
+  contacts   Contact[]
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  user_id   String
+  address   String // 0x... checksummed
+  nickname  String? // "main", "trading", "cold storage"
+  chain     String   @default("abstract-testnet")
+  is_active Boolean  @default(false) // only one active per user at a time
+  added_at  DateTime @default(now())
+  user      User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, address]) // same address can't be added twice per user
+}
+
+model Contact {
+  id       String   @id @default(cuid())
+  user_id  String
+  address  String // 0x... recipient address
+  nickname String // "Alice", "exchange", "Coinbase"
+  added_at DateTime @default(now())
+  user     User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, address]) // one entry per address per user
+}
+
+model Nonce {
+  value      String   @id
+  expires_at DateTime
+  used       Boolean  @default(false) // marked true after one use
+}

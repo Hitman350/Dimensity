@@ -1,11 +1,11 @@
-import OpenAI from "openai";
+import OpenAI from 'openai';
 import type {
   LLMProvider,
   LLMProviderConfig,
   ConversationMessage,
   LLMResponse,
   ToolDeclaration,
-} from "./types.js";
+} from './types';
 
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
@@ -20,7 +20,7 @@ export class OpenAIProvider implements LLMProvider {
 
   async chat(
     history: ConversationMessage[],
-    tools: ToolDeclaration[]
+    tools: ToolDeclaration[],
   ): Promise<LLMResponse> {
     const messages = this.convertHistory(history);
     const openaiTools = this.convertTools(tools);
@@ -38,7 +38,11 @@ export class OpenAIProvider implements LLMProvider {
       return {
         text: message.content,
         functionCalls: message.tool_calls
-          .filter((tc): tc is OpenAI.ChatCompletionMessageToolCall & { type: "function" } => tc.type === "function")
+          .filter(
+            (tc): tc is OpenAI.ChatCompletionMessageToolCall & {
+              type: 'function';
+            } => tc.type === 'function',
+          )
           .map((tc) => ({
             id: tc.id,
             name: tc.function.name,
@@ -54,24 +58,24 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   private convertHistory(
-    messages: ConversationMessage[]
+    messages: ConversationMessage[],
   ): OpenAI.ChatCompletionMessageParam[] {
     const result: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: this.systemInstruction },
+      { role: 'system', content: this.systemInstruction },
     ];
 
     for (const msg of messages) {
-      if (msg.role === "user") {
-        result.push({ role: "user", content: msg.content });
-      } else if (msg.role === "model") {
+      if (msg.role === 'user') {
+        result.push({ role: 'user', content: msg.content });
+      } else if (msg.role === 'model') {
         const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
-          role: "assistant",
+          role: 'assistant',
           content: msg.content || null,
         };
         if (msg.functionCalls && msg.functionCalls.length > 0) {
           assistantMsg.tool_calls = msg.functionCalls.map((fc) => ({
             id: fc.id || `call_${fc.name}_${Date.now()}`,
-            type: "function" as const,
+            type: 'function' as const,
             function: {
               name: fc.name,
               arguments: JSON.stringify(fc.args),
@@ -79,9 +83,9 @@ export class OpenAIProvider implements LLMProvider {
           }));
         }
         result.push(assistantMsg);
-      } else if (msg.role === "tool") {
+      } else if (msg.role === 'tool') {
         result.push({
-          role: "tool",
+          role: 'tool',
           tool_call_id: msg.callId || `call_${msg.name}`,
           content: msg.content,
         });
@@ -92,15 +96,15 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   private convertTools(
-    tools: ToolDeclaration[]
+    tools: ToolDeclaration[],
   ): OpenAI.ChatCompletionTool[] {
     return tools.map((tool) => ({
-      type: "function" as const,
+      type: 'function' as const,
       function: {
         name: tool.name,
         description: tool.description,
         parameters: {
-          type: "object" as const,
+          type: 'object' as const,
           properties: tool.parameters.properties,
           required: tool.parameters.required,
         },

@@ -1,9 +1,7 @@
-import { ToolConfig } from "./allTools.js";
-import { getSigner } from "../signers/index.js";
-
-interface GetWalletHistoryArgs {
-  address?: string;
-}
+import { Injectable, Inject } from '@nestjs/common';
+import { SIGNER } from '../signers/signer.module';
+import type { Signer } from '../signers/types';
+import type { ToolDefinition, ToolService } from './tool.interface';
 
 interface BlockscoutTx {
   hash: string;
@@ -21,32 +19,32 @@ interface BlockscoutResponse {
   result: BlockscoutTx[];
 }
 
-const EXPLORER_API = "https://explorer.testnet.abs.xyz/api";
+const EXPLORER_API = 'https://explorer.testnet.abs.xyz/api';
 
-export const getWalletHistoryTool: ToolConfig<GetWalletHistoryArgs> = {
-  definition: {
-    type: "function",
-    function: {
-      name: "get_wallet_history",
-      description:
-        "Fetches the most recent transactions for a wallet on Abstract Testnet. If no address is provided, uses the connected wallet address automatically.",
-      parameters: {
-        type: "object",
-        properties: {
-          address: {
-            type: "string",
-            description:
-              "Wallet address to look up (0x...). Optional — defaults to connected wallet.",
-          },
+@Injectable()
+export class GetWalletHistoryService implements ToolService {
+  constructor(@Inject(SIGNER) private readonly signer: Signer) {}
+
+  readonly definition: ToolDefinition = {
+    name: 'get_wallet_history',
+    description:
+      'Fetches the most recent transactions for a wallet on Abstract Testnet. If no address is provided, uses the connected wallet address automatically.',
+    parameters: {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'string',
+          description:
+            'Wallet address to look up (0x...). Optional — defaults to connected wallet.',
         },
-        required: [],
       },
+      required: [],
     },
-  },
+  };
 
-  handler: async (args: GetWalletHistoryArgs): Promise<string> => {
+  async execute(args: { address?: string }): Promise<string> {
     // Auto-resolve address from signer if not provided
-    const address = args.address || (await getSigner().getAddress());
+    const address = args.address || (await this.signer.getAddress());
 
     try {
       const url = `${EXPLORER_API}?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=20`;
@@ -54,8 +52,8 @@ export const getWalletHistoryTool: ToolConfig<GetWalletHistoryArgs> = {
 
       if (!response.ok) {
         return JSON.stringify({
-          error: "Explorer API unavailable",
-          message: "Unable to fetch history right now. Check manually:",
+          error: 'Explorer API unavailable',
+          message: 'Unable to fetch history right now. Check manually:',
           explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
         });
       }
@@ -63,11 +61,11 @@ export const getWalletHistoryTool: ToolConfig<GetWalletHistoryArgs> = {
       const data: BlockscoutResponse = await response.json();
 
       // status === "0" means no transactions — valid empty state, not an error
-      if (data.status === "0") {
+      if (data.status === '0') {
         return JSON.stringify({
           address,
           message:
-            "No transactions found for this wallet on Abstract Testnet.",
+            'No transactions found for this wallet on Abstract Testnet.',
           transactions: [],
           explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
         });
@@ -89,11 +87,11 @@ export const getWalletHistoryTool: ToolConfig<GetWalletHistoryArgs> = {
 
         return {
           hash: tx.hash,
-          direction: isSend ? "SENT" : "RECEIVED",
+          direction: isSend ? 'SENT' : 'RECEIVED',
           from: tx.from,
           to: tx.to,
           value: `${valueEth.toFixed(6)} ETH`,
-          status: tx.isError === "0" ? "Success" : "Failed",
+          status: tx.isError === '0' ? 'Success' : 'Failed',
           date: new Date(Number(tx.timeStamp) * 1000).toISOString(),
         };
       });
@@ -106,12 +104,12 @@ export const getWalletHistoryTool: ToolConfig<GetWalletHistoryArgs> = {
         recent_transactions: formatted.slice(0, 5),
         explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
       });
-    } catch (error) {
+    } catch {
       return JSON.stringify({
-        error: "Explorer API unavailable",
-        message: "Unable to fetch history right now. Check manually:",
+        error: 'Explorer API unavailable',
+        message: 'Unable to fetch history right now. Check manually:',
         explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
       });
     }
-  },
-};
+  }
+}

@@ -4,14 +4,14 @@ import {
   type Content,
   type Part,
   type FunctionDeclaration,
-} from "@google/generative-ai";
+} from '@google/generative-ai';
 import type {
   LLMProvider,
   LLMProviderConfig,
   ConversationMessage,
   LLMResponse,
   ToolDeclaration,
-} from "./types.js";
+} from './types';
 
 export class GeminiProvider implements LLMProvider {
   private model;
@@ -26,7 +26,7 @@ export class GeminiProvider implements LLMProvider {
 
   async chat(
     history: ConversationMessage[],
-    tools: ToolDeclaration[]
+    tools: ToolDeclaration[],
   ): Promise<LLMResponse> {
     const contents = this.convertHistory(history);
     const functionDeclarations = this.convertTools(tools);
@@ -65,9 +65,9 @@ export class GeminiProvider implements LLMProvider {
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
 
-      if (msg.role === "user") {
-        contents.push({ role: "user", parts: [{ text: msg.content }] });
-      } else if (msg.role === "model") {
+      if (msg.role === 'user') {
+        contents.push({ role: 'user', parts: [{ text: msg.content }] });
+      } else if (msg.role === 'model') {
         const parts: Part[] = [];
         if (msg.content) {
           parts.push({ text: msg.content });
@@ -78,9 +78,9 @@ export class GeminiProvider implements LLMProvider {
           }
         }
         if (parts.length > 0) {
-          contents.push({ role: "model", parts });
+          contents.push({ role: 'model', parts });
         }
-      } else if (msg.role === "tool") {
+      } else if (msg.role === 'tool') {
         // Merge consecutive tool messages into one Content
         const functionResponseParts: Part[] = [
           {
@@ -92,10 +92,10 @@ export class GeminiProvider implements LLMProvider {
         ];
 
         // Look ahead for more consecutive tool messages
-        while (i + 1 < messages.length && messages[i + 1].role === "tool") {
+        while (i + 1 < messages.length && messages[i + 1].role === 'tool') {
           i++;
           const nextTool = messages[i] as {
-            role: "tool";
+            role: 'tool';
             name: string;
             content: string;
           };
@@ -107,7 +107,7 @@ export class GeminiProvider implements LLMProvider {
           });
         }
 
-        contents.push({ role: "function", parts: functionResponseParts });
+        contents.push({ role: 'function', parts: functionResponseParts });
       }
     }
 
@@ -135,14 +135,14 @@ export class GeminiProvider implements LLMProvider {
   }
 
   private convertProperties(
-    props: Record<string, unknown>
-  ): Record<string, any> {  // eslint-disable-line @typescript-eslint/no-explicit-any
-    const converted: Record<string, any> = {};  // eslint-disable-line @typescript-eslint/no-explicit-any
+    props: Record<string, unknown>,
+  ): Record<string, any> {
+    const converted: Record<string, any> = {};
     for (const [key, value] of Object.entries(props)) {
       const prop = value as { type: string; description?: string };
       converted[key] = {
         type: this.mapSchemaType(prop.type),
-        description: prop.description || "",
+        description: prop.description || '',
       };
     }
     return converted;

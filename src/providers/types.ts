@@ -13,9 +13,9 @@ export interface FunctionCall {
 
 /** Universal message format — each provider converts to/from its native format */
 export type ConversationMessage =
-  | { role: "user"; content: string }
-  | { role: "model"; content: string; functionCalls?: FunctionCall[] }
-  | { role: "tool"; name: string; content: string; callId?: string };
+  | { role: 'user'; content: string }
+  | { role: 'model'; content: string; functionCalls?: FunctionCall[] }
+  | { role: 'tool'; name: string; content: string; callId?: string };
 
 /** Response from any LLM provider */
 export interface LLMResponse {
@@ -28,7 +28,7 @@ export interface ToolDeclaration {
   name: string;
   description: string;
   parameters: {
-    type: "object";
+    type: 'object';
     properties: Record<string, unknown>;
     required: string[];
   };
@@ -45,6 +45,6 @@ export interface LLMProviderConfig {
 export interface LLMProvider {
   chat(
     history: ConversationMessage[],
-    tools: ToolDeclaration[]
+    tools: ToolDeclaration[],
   ): Promise<LLMResponse>;
 }

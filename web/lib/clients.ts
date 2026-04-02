@@ -17,37 +17,21 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
-// Wallet client — lazy-initialized on first use to avoid
-// build-time errors when PRIVATE_KEY is not set.
-// TODO: signer is a process-level singleton — single wallet only.
-// Multi-wallet support requires per-request signer instantiation
-// when KernelSigner + passkey is implemented in the frontend phase.
-
-type ExtendedWalletClient = WalletClient<Transport, Chain, Account> &
+// Extended wallet client type with zkSync EIP-712 actions
+export type ExtendedWalletClient = WalletClient<Transport, Chain, Account> &
   ReturnType<typeof eip712WalletActions>;
 
-let _walletClient: ExtendedWalletClient | null = null;
-let _walletAddress: `0x${string}` | null = null;
+// Per-request wallet client factory.
+// Creates a fresh wallet client scoped to a single API request.
+// Replaces the old module-level singleton to prevent multi-user signer contamination.
 
-function initWallet() {
-  if (_walletClient) return;
-  const pk = process.env.PRIVATE_KEY;
-  if (!pk) throw new Error("PRIVATE_KEY environment variable is required");
-  const account = privateKeyToAccount(pk as `0x${string}`);
-  _walletClient = createWalletClient({
+export function createPerRequestWalletClient(
+  privateKey: string
+): ExtendedWalletClient {
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  return createWalletClient({
     account,
     chain: abstractTestnet,
     transport: http(),
   }).extend(eip712WalletActions()) as unknown as ExtendedWalletClient;
-  _walletAddress = account.address;
-}
-
-export function getWalletClient(): ExtendedWalletClient {
-  initWallet();
-  return _walletClient!;
-}
-
-export function getWalletAddress(): `0x${string}` {
-  initWallet();
-  return _walletAddress!;
 }

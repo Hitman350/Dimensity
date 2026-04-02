@@ -1,359 +1,529 @@
 <div align="center">
 
+<br />
+
 # Dimensity
 
-**Autonomous AI Agent for On-Chain Execution**
+### Talk to your crypto. Execute on-chain.
 
-A CLI-first developer tool that translates natural language into real blockchain transactions on [Abstract Testnet](https://abs.xyz/) — powered by Gemini function calling and viem.
+[![Node.js](https://img.shields.io/badge/Node.js-≥18-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Vercel AI SDK](https://img.shields.io/badge/Vercel_AI_SDK-4-000000?style=flat-square&logo=vercel&logoColor=white)](https://sdk.vercel.ai)
+[![viem](https://img.shields.io/badge/viem-2.x-1E1E20?style=flat-square)](https://viem.sh)
+[![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://prisma.io)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Gemini](https://img.shields.io/badge/Gemini-2.0_Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
-[![viem](https://img.shields.io/badge/viem-2.x-1E1E1E?logo=ethereum&logoColor=white)](https://viem.sh/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+**An autonomous AI agent that replaces dApp UIs with natural language.**
+**Connect your wallet. Type what you want. Watch it execute.**
+
+[Live Demo →](https://dimensity.vercel.app) · [Report Bug](https://github.com/Hitman350/dimensity/issues) · [Request Feature](https://github.com/Hitman350/dimensity/issues)
+
+<br />
 
 </div>
 
 ---
 
-## 📖 Overview
+## The Problem
 
-**Dimensity** is not a chatbot — it is an **autonomous AI agent system** that bridges the gap between natural language and on-chain execution.
+Interacting with blockchain today means:
+- Navigating **dozens of dApp interfaces** just to send tokens, deploy contracts, or check balances
+- **Copy-pasting** hex addresses and manually decoding transaction data
+- Having **zero safety checks** before signing — you hope you read the calldata right
+- **No memory** — every session starts from scratch, no contacts, no context
 
-Built in TypeScript, it connects Gemini 2.0 Flash to a live blockchain wallet through the [Google Generative AI SDK](https://ai.google.dev/gemini-api/docs) with function calling. When a user types an instruction like *"deploy a token called Starlight"*, the agent reasons about what tools to invoke, executes the corresponding blockchain operation via [viem](https://viem.sh/), and returns the result — all without the user ever constructing a transaction, encoding calldata, or managing nonces.
+## The Solution
 
-The agent operates on **Abstract Testnet**, a zkSync-based Layer 2 network, with native EIP-712 transaction signing support.
+Dimensity turns all of that into a single conversation. You talk. It executes.
+
+```
+You:   "Send 0.05 ETH to Alice"
+Agent:  Resolved Alice → 0x123...abc
+        Gas estimate: 0.000042 ETH. Confirm?
+        [User clicks Confirm]
+Agent:  ✅ Sent! Tx: 0xdef...789
+        Save Alice as a contact?
+```
+
+Under the hood, a **recursive tool-calling agent loop** built on the Vercel AI SDK connects multi-provider LLM intelligence to the viem blockchain client. Every transaction is simulated before broadcast. Every wallet interaction requires cryptographic proof of ownership.
+
+> **While tools like Zapper and DeBank just *show* you data, Dimensity *explains* it and *acts* on it** — turning blockchain interaction into a guided conversation.
 
 ---
 
-## ⚡ Quick Start
+## ✨ Feature Highlights
 
-```bash
-git clone https://github.com/Hitman350/Openai-onchain-assistant.git
-cd Openai-onchain-assistant
-npm install
-```
+<table>
+<tr>
+<td width="50%">
 
-Create a `.env` file:
+### 🔐 Authentication & Identity
+- **SIWE Login** — prove wallet ownership via cryptographic signature. No emails, no passwords
+- **Multi-Wallet** — add multiple wallets, switch active context seamlessly
+- **Contact Book** — save address→nickname mappings for natural language sending
+- **Session Memory** — remembers `lastRecipient` and `lastAmount` for follow-ups
 
-```env
-GEMINI_API_KEY=your-gemini-api-key
-PRIVATE_KEY=0xyour-abstract-testnet-private-key
-```
+</td>
+<td width="50%">
 
-```bash
-npm start
-```
+### ⚡ Transaction Execution
+- **Send ETH** — signs and broadcasts native transfers with pre-flight gas estimation
+- **Deploy ERC-20** — deploys tokens with name, symbol, and supply via compiled bytecode
+- **Gas Estimation** — shows precise gas costs in ETH before confirmation
+- **Client Confirmation** — every write operation halts for explicit user approval
 
-```
-You: Deploy a token called "Starlight" with symbol "STAR" and 1 million supply
-Dimensity: Starlight (STAR) token deployed successfully at: 0x7b2c...
-```
+</td>
+</tr>
+<tr>
+<td width="50%">
 
----
+### 🔍 Analysis & Intelligence
+- **Explain Transaction** — decodes any tx hash into plain-English
+- **Contract Scanner** — analyzes bytecode for dangerous selectors (`mint`, `blacklist`, `pause`, `selfdestruct`)
+- **Token Info** — reads `name`, `symbol`, `decimals`, `totalSupply` from any ERC-20
+- **Live ETH Price** — real-time USD/EUR via CoinGecko with 60s cache
 
-## 🔥 Motivation
+</td>
+<td width="50%">
 
-Blockchain interaction today is hostile to most users and even many developers:
+### 🤖 Provider-Agnostic LLM
+- **Gemini** (default) — `gemini-2.5-flash`
+- **OpenAI** — `gpt-4o`
+- **Anthropic** — `claude-sonnet-4-20250514`
+- Swap engines with one env var. All tool execution stays untouched.
 
-- **Transaction assembly is manual and error-prone** — constructing calldata, setting gas limits, managing nonces, and signing with the correct key requires deep protocol knowledge.
-- **Smart contract deployment is a multi-step process** — compiling, encoding constructor arguments, and verifying bytecode introduces friction that discourages experimentation.
-- **Every chain has its own tooling nuances** — zkSync's EIP-712 signing, L2 fee models, and RPC quirks add another layer of complexity.
-
-Dimensity significantly reduces this friction. Instead of writing code or navigating complex UIs, you describe what you want in plain English. The agent handles reasoning, tool selection, parameter extraction, and execution — turning blockchain interaction into a conversation.
-
-**Natural language is the most accessible interface.** Pairing it with an autonomous agent that can reason *and* execute creates a powerful paradigm for interacting with on-chain systems.
-
----
-
-## ⚙️ Features
-
-| Capability | Description |
-|:-----------|:------------|
-| **Autonomous Agent Loop** | Recursive tool-call processing — the agent continues execution until all required actions are resolved, enabling multi-step workflows from a single prompt |
-| **ETH Balance Queries** | Read the native ETH balance of any wallet address on Abstract Testnet |
-| **ETH Transfers** | Sign and broadcast ETH transfers from the connected wallet to any recipient |
-| **ERC-20 Token Deployment** | Deploy custom ERC-20 contracts with configurable name, symbol, and initial supply — directly from natural language |
-| **Transaction Explainer** | Decode any tx hash into plain English — status, parties, value, gas cost |
-| **Contract Security Scanner** | Bytecode-level scan for mint, pause, blacklist and ownership functions with CRITICAL/HIGH/MEDIUM/LOW risk ratings |
-| **Token Info Reader** | Fetch name, symbol, decimals, and total supply from any ERC-20 contract |
-| **Gas Estimator** | Estimate transaction cost before broadcasting — shows gas units, Gwei price, and total ETH needed |
-| **Wallet Introspection** | Retrieve the connected wallet's address derived from the configured private key |
-| **CLI-First Interface** | Terminal-based conversational interface built for developers — no transaction builders, no ABI encoding, no manual signing |
-| **Extensible Tool Registry** | Adding a new on-chain capability requires only defining a `ToolConfig` object and registering it — zero changes to the agent loop |
+</td>
+</tr>
+</table>
 
 ---
 
-## 🤖 Agent Design
+## 🔒 6-Layer Security Model
 
-Dimensity implements a proper **agent architecture** — the LLM does not execute transactions directly. It *reasons about what to do* and delegates execution to a deterministic tool layer.
-
-### Core Loop
-
-```
-User Input → LLM Reasoning → Tool Call(s) → On-Chain Execution → Result → LLM Response
-                  ↑                                                    |
-                  └────────────── Recursive Loop ──────────────────────┘
-```
-
-### How It Works
-
-1. **Model Initialization** — On startup, a Gemini 2.0 Flash model is configured with function declarations converted from the tool registry. The model knows *what tools exist* and *how to invoke them* via Gemini function calling schemas.
-
-2. **Message Handling** — User input is sent to the model via a chat session that maintains conversation history. The model decides whether it needs to call tools or can respond directly.
-
-3. **Tool Call Interception** — When the model response contains function calls, the agent loop (`performRun`) intercepts them and dispatches each to its registered handler in the tool registry.
-
-4. **Concurrent Dispatch** — Multiple tool calls within a single step are dispatched concurrently at the orchestration level via `Promise.all`. Note that on-chain transactions may still depend on nonce ordering and network state at the blockchain level.
-
-5. **Recursive Resolution** — The agent loop continues processing function calls until the model produces a final text response with no further tool invocations. This enables **multi-step execution chains** — a single user message can trigger a sequence of dependent tool calls resolved across multiple iterations.
-
-6. **Response Composition** — Once all tool calls are resolved, the model composes a natural language response incorporating the execution results.
-
-### Separation of Concerns
-
-| Layer | Responsibility | Implementation |
-|:------|:---------------|:---------------|
-| **Reasoning** | Decide *what* to do, *which* tools to call, *what* arguments to pass | Gemini 2.0 Flash via Google Generative AI SDK |
-| **Orchestration** | Manage the agent loop, dispatch tool calls, handle errors | `performRun.ts` (agent loop with concurrent dispatch) |
-| **Execution** | Perform blockchain operations via deterministic code paths | Tool handlers using viem clients |
-| **Transport** | Sign and broadcast transactions to the network | viem wallet/public clients with EIP-712 |
-
-> The LLM never touches private keys, never constructs raw transactions, and never directly interacts with the network. It produces structured function calls (JSON) that the execution layer interprets via deterministic code paths — though the on-chain outcome depends on network state (gas, nonce, block inclusion).
-
----
-
-## 🧠 How It Works
+Dimensity implements defense-in-depth across every interaction surface. No single point of failure.
 
 ```mermaid
-sequenceDiagram
-    participant User as 👤 User (CLI)
-    participant Assistant as 🤖 Gemini 2.0 Flash (Reasoning)
-    participant Agent as ⚙️ Agent Loop (Orchestration)
-    participant Tools as 🔧 Tool Handlers (Execution)
-    participant Chain as ⛓️ Abstract Testnet
+graph TB
+    subgraph "Layer 1: SIWE Authentication"
+        A["Cryptographic wallet signature<br/>No passwords — prove you own the key"]
+    end
+    subgraph "Layer 2: Replay Protection"
+        B["Server-generated nonce<br/>5-minute expiry · single-use enforcement"]
+    end
+    subgraph "Layer 3: Session Isolation"
+        C["JWT-only sessions (7-day expiry)<br/>No server-side session storage"]
+    end
+    subgraph "Layer 4: Wallet Deletion Guard"
+        D["Re-SIWE required to remove wallet<br/>Must re-prove ownership before deletion"]
+    end
+    subgraph "Layer 5: Key Isolation"
+        E["LLM never touches private keys<br/>Structured intent only — no raw calldata"]
+    end
+    subgraph "Layer 6: Write Safety"
+        F["Every state-changing op requires<br/>explicit user confirmation via modal"]
+    end
 
-    User->>Assistant: "Deploy a token called Starlight with 1M supply"
-    Assistant->>Agent: functionCall → deploy_erc20(name, symbol, supply)
-    Agent->>Tools: Dispatch to deployErc20 handler
-    Tools->>Chain: deployContract() via wallet client
-    Chain-->>Tools: Transaction receipt + contract address
-    Tools-->>Agent: "Starlight (STAR) deployed at 0x7b2c..."
-    Agent-->>Assistant: Submit function response
-    Assistant-->>User: "Starlight (STAR) deployed at 0x7b2c..."
+    A --> B --> C --> D --> E --> F
+
+    style A fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style B fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style C fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style D fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style E fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style F fill:#1a1a2e,stroke:#8B5CF6,color:#fff
 ```
+
+| Layer | Mechanism | Implementation |
+|:------|:----------|:---------------|
+| **1. Authentication** | SIWE — cryptographic proof of wallet ownership | `viem.verifyMessage()` in `auth.ts` |
+| **2. Replay Protection** | Server-generated nonce with 5-minute expiry | `Nonce` model — single-use, DB-enforced |
+| **3. Session Isolation** | JWT-only (7-day expiry), no server-side sessions | NextAuth v5 `strategy: "jwt"` |
+| **4. Wallet Deletion** | Requires re-SIWE — must prove ownership of the wallet being removed | Re-authentication gate on delete |
+| **5. Key Isolation** | LLM never touches private keys or raw calldata | Signer abstraction — structured intent only |
+| **6. Write Safety** | Every state-changing operation requires explicit user confirmation | `ConfirmationModal` intercepts all write tool calls |
 
 ---
 
 ## 🏗️ Architecture
 
+### System Overview
+
 ```
-src/
-├── index.ts                        # CLI entry point — interactive readline loop
-├── gemini/
-│   ├── createModel.ts              # Initializes Gemini with function declarations
-│   └── performRun.ts               # Recursive agent loop — processes function calls
-├── tools/
-│   ├── allTools.ts                 # Tool registry — ToolConfig interface + Gemini schema converter
-│   ├── getBalance.ts               # Reads native ETH balance via public client
-│   ├── getWalletAddress.ts         # Returns wallet address derived from private key
-│   ├── sendTransaction.ts          # Signs and sends ETH transfers via wallet client
-│   ├── deployErc20.ts              # Deploys ERC-20 contracts via wallet client
-│   ├── explainTransaction.ts       # Decodes tx hash into status, value, gas cost breakdown
-│   ├── scanContract.ts             # Bytecode-level security scan for dangerous selectors
-│   ├── getTokenInfo.ts             # Reads ERC-20 name, symbol, decimals, totalSupply
-│   └── estimateGas.ts              # Pre-broadcast gas cost estimation
-├── viem/
-│   ├── createViemPublicClient.ts   # Read-only JSON-RPC client (Abstract Testnet)
-│   └── createViemWalletClient.ts   # Signing client with EIP-712 wallet actions
-└── const/
-    └── contractDetails.ts          # ERC-20 ABI and compiled bytecode
+┌──────────────────────────────────────────────────┐
+│              LLM Provider Layer                  │
+│     Gemini  ·  OpenAI  ·  Anthropic  (adapters)  │
+└───────────────────┬──────────────────────────────┘
+                    │  Vercel AI SDK (streamText)
+┌───────────────────▼──────────────────────────────┐
+│          Agent Loop  (Next.js API Route)         │
+│   Recursive · Concurrent · maxSteps: 10          │
+│   Per-request auth · Dynamic system prompt       │
+└───────────────────┬──────────────────────────────┘
+                    │  CoreTool interface (Zod validated)
+┌───────────────────▼──────────────────────────────┐
+│            Tool Execution Layer                  │
+│    17 tools  ·  inline registry  ·  zod schemas  │
+│    Read tools → auto-execute                     │
+│    Write tools → ConfirmationModal               │
+└───────────────────┬──────────────────────────────┘
+                    │  Signer interface
+┌───────────────────▼──────────────────────────────┐
+│              Signer Layer                        │
+│   LocalSigner  ·  KernelSigner (AA-ready)        │
+└───────────────────┬──────────────────────────────┘
+                    │
+┌───────────────────▼──────────────────────────────┐
+│        Abstract Testnet  (zkSync L2)             │
+└──────────────────────────────────────────────────┘
 ```
 
-### Key Design Decisions
+### Request Flow
 
-- **Tool Registry Pattern** — All tools are defined in `allTools.ts` with a unified `ToolConfig` interface containing both the function schema and the execution handler. Schemas are automatically converted to Gemini-compatible `FunctionDeclaration` format at startup. Adding a new on-chain capability is a single-file addition — no modifications to the agent loop required.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as Next.js Chat UI
+    participant API as /api/chat
+    participant LLM as Gemini / OpenAI / Anthropic
+    participant Tools as Tool Registry (17 tools)
+    participant Chain as Abstract Testnet (zkSync L2)
 
-- **Recursive Agent Loop** — `performRun.ts` continuously processes function calls until the model produces a final text response, enabling multi-step tool-call chains within a single user message. This is what makes Dimensity an *agent* rather than a single-shot function caller.
+    U->>UI: "Send 0.05 ETH to Alice"
+    UI->>API: POST messages + session JWT
+    API->>API: Validate JWT · load active wallet
+    API->>LLM: streamText (system prompt + wallet context)
+    LLM-->>API: tool_call: resolve_contact("Alice")
+    API->>Tools: auto-execute (read tool)
+    Tools-->>API: 0x123...abc
+    API->>LLM: tool result appended → recurse
+    LLM-->>API: tool_call: send_transaction(0x123...abc, 0.05)
+    API-->>UI: pending tool call (no execute — write tool)
+    UI->>U: ConfirmationModal: "Send 0.05 ETH?"
+    U->>UI: Clicks Confirm
+    UI->>API: POST /api/execute-tool (authenticated)
+    API->>Chain: broadcast signed transaction
+    Chain-->>API: tx receipt
+    API-->>UI: "✅ Sent! Tx: 0xdef..."
+```
 
-- **EIP-712 Native Support** — The wallet client extends viem's `eip712WalletActions()` for native zkSync transaction signing, handling the Abstract Testnet's custom transaction format transparently.
+### Read vs. Write Tool Execution
 
-- **Concurrent Tool Dispatch** — `performRun.ts` dispatches all pending tool calls concurrently at the orchestration level via `Promise.all`, reducing latency when the model requests multiple operations in a single step. On-chain ordering is still governed by nonce sequencing at the network level.
+```mermaid
+flowchart LR
+    LLM["LLM generates<br/>tool_call"] --> CHECK{Has execute<br/>function?}
+    CHECK -->|"Yes (Read Tool)"| AUTO["Auto-execute<br/>server-side"]
+    CHECK -->|"No (Write Tool)"| MODAL["Return to client<br/>→ ConfirmationModal"]
+    MODAL --> USER{User decision}
+    USER -->|Confirm| EXEC["POST /api/execute-tool<br/>(authenticated)"]
+    USER -->|Cancel| CANCEL["Tool result: 'cancelled'"]
+    AUTO --> RESULT["Result → LLM<br/>for next step"]
+    EXEC --> RESULT
+
+    style LLM fill:#1a1a2e,stroke:#8B5CF6,color:#fff
+    style CHECK fill:#1a1a2e,stroke:#F59E0B,color:#fff
+    style AUTO fill:#1a1a2e,stroke:#10B981,color:#fff
+    style MODAL fill:#1a1a2e,stroke:#EF4444,color:#fff
+    style EXEC fill:#1a1a2e,stroke:#10B981,color:#fff
+```
 
 ---
 
-## 🔐 Security Considerations
+## 🛠️ 17 Registered Tools
 
-Dimensity is designed with a clear **security boundary** between the LLM and the execution layer:
+<details>
+<summary><b>Click to view the complete tool registry</b></summary>
 
-| Principle | Implementation |
-|:----------|:---------------|
-| **Private key isolation** | The private key is loaded from environment variables and only accessed by the viem wallet client. The LLM never sees, receives, or processes the key. |
-| **LLM does not directly execute transactions** | Gemini only *reasons* about what should happen and outputs structured function calls. The actual signing and broadcasting is performed by a **separate execution layer** (viem handlers). The model has no direct access to private keys, RPC endpoints, or signing capabilities. |
-| **Deterministic code paths** | Tool handlers follow fixed execution logic for a given set of inputs. The code path from function call to transaction broadcast contains no LLM-influenced branching. However, the on-chain outcome is subject to network conditions (gas prices, nonce state, block inclusion). |
-| **Error containment** | Tool execution failures are caught, serialized, and returned to the model as tool outputs. The agent loop continues gracefully without exposing stack traces or internal state. |
-| **LLM intent misinterpretation** | As with any LLM-driven system, the model may misinterpret user intent or hallucinate parameters. Dimensity currently executes tool calls without a confirmation step. Future iterations may include a human-in-the-loop approval layer for high-risk operations. |
+| # | Tool | Type | Description |
+|:--|:-----|:-----|:------------|
+| 1 | `get_balance` | Read | Fetch native ETH balance for any wallet address |
+| 2 | `get_wallet_address` | Read | Return the currently active wallet address |
+| 3 | `send_transaction` | **Write** | Transfer ETH (requires client confirmation) |
+| 4 | `deploy_erc20` | **Write** | Deploy an ERC-20 token contract (requires confirmation) |
+| 5 | `explain_transaction` | Read | Decode a transaction hash into human-readable summary |
+| 6 | `scan_contract` | Read | Analyze contract bytecode for risky function selectors |
+| 7 | `get_token_info` | Read | Read ERC-20 metadata (name, symbol, decimals, supply) |
+| 8 | `estimate_gas` | Read | Estimate gas cost for a transaction in ETH |
+| 9 | `get_wallet_history` | Read | Fetch recent transactions from Blockscout API |
+| 10 | `get_eth_price` | Read | Fetch live ETH/USD and ETH/EUR prices (60s cache) |
+| 11 | `list_wallets` | Read | List all wallets for the authenticated user |
+| 12 | `switch_wallet` | Read | Switch the active wallet (atomic DB transaction) |
+| 13 | `rename_wallet` | Read | Update a wallet's nickname |
+| 14 | `add_contact` | Read | Save an address → nickname mapping |
+| 15 | `resolve_contact` | Read | Look up an address by contact nickname |
+| 16 | `get_contacts` | Read | List all saved contacts |
+| 17 | `remove_contact` | Read | Delete a contact entry |
 
-> [!CAUTION]
-> This is a **testnet-only** CLI tool. Running against mainnet without additional safety measures (transaction simulation, spending limits, human-in-the-loop confirmation) is strongly discouraged.
+> **Read tools** include an `execute` function and run server-side automatically.
+> **Write tools** omit `execute`, causing the AI SDK to return them to the client for user confirmation via `ConfirmationModal`.
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-| Requirement | Details |
-|:------------|:--------|
-| **Node.js** | Version 18 or higher |
-| **npm** | Included with Node.js |
-| **Gemini API Key** | Obtain from [ai.google.dev](https://ai.google.dev/gemini-api/docs/api-key) |
-| **Private Key** | For an Abstract Testnet wallet funded with testnet ETH |
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/Hitman350/Openai-onchain-assistant.git
-cd Openai-onchain-assistant
-
-# Install dependencies
-npm install
-```
-
-### Configuration
-
-Create a `.env` file in the project root:
-
-```env
-GEMINI_API_KEY=your-gemini-api-key
-PRIVATE_KEY=0xyour-abstract-testnet-private-key
-```
-
-> [!CAUTION]
-> Never commit your `.env` file to version control. The `.gitignore` is preconfigured to exclude it. Rotate any keys that may have been exposed.
-
-### Obtaining Testnet ETH
-
-Visit the [Abstract Testnet Faucet](https://faucet.abs.xyz/) to fund your wallet with testnet ETH before sending transactions or deploying contracts.
-
-### Running
-
-```bash
-npm start
-```
-
-This compiles the TypeScript source and launches the interactive CLI. Type your messages and press **Enter**. Type `exit` to end the session.
+</details>
 
 ---
 
 ## 💬 Usage Examples
 
+<table>
+<tr><td>
+
+**Portfolio Check**
 ```
-You: What is my wallet address?
-Dimensity: Your connected wallet address is 0x1234...abcd
-
-You: What's the balance of 0xabc...def?
-Dimensity: 0.450000 ETH
-
-You: Send 0.05 ETH to 0xabc...def
-Dimensity: Sent 0.05 ETH to 0xabc...def.
-           Tx Hash: 0x9f3a...
-           https://explorer.testnet.abs.xyz/tx/0x9f3a...
-
-You: Deploy a token called "Starlight" with symbol "STAR" and 1 million supply
-Dimensity: Starlight (STAR) deployed at 0x7b2c...
-           Supply: 1,000,000 STAR
-           https://explorer.testnet.abs.xyz/address/0x7b2c...
-
-You: What happened in tx 0x9f3a...?
-Dimensity: ✅ Success — 0x1234...abcd sent 0.050000 ETH to 0xabc...def.
-           Gas cost: 0.000042 ETH | Block: 1234567
-           https://explorer.testnet.abs.xyz/tx/0x9f3a...
-
-You: Is this contract safe? 0x7b2c...
-Dimensity: Risk: MEDIUM
-           ⚠️ owner() — contract has a privileged owner
-           ⚠️ mint(address,uint256) — owner can mint unlimited tokens
-           Recommendation: 🟡 Moderate risk. Standard caution advised.
-           https://explorer.testnet.abs.xyz/address/0x7b2c...
-
-You: Tell me about token 0x7b2c...
-Dimensity: Starlight (STAR) — 18 decimals
-           Total Supply: 1,000,000 STAR
-           https://explorer.testnet.abs.xyz/address/0x7b2c...
-
-You: Estimate gas to send 0.01 ETH to 0xabc...def
-Dimensity: Gas estimate: 21,000 units @ 0.2500 Gwei
-           Gas cost: 0.00000525 ETH
-           Total needed: 0.01000525 ETH
+You:  What's my balance?
+Bot:  Your balance is 0.145 ETH (~$362.50 USD).
 ```
 
-> Each of these examples triggers the full agent loop — the model reasons about the intent, selects the appropriate tool, constructs the arguments, and delegates to the execution handler.
+</td><td>
+
+**Send ETH**
+```
+You:  Send 0.05 ETH to 0x123...abc
+Bot:  Gas estimate: 0.000042 ETH. Confirm?
+      [User clicks Confirm]
+Bot:  ✅ Sent! Tx: 0xdef...789
+```
+
+</td></tr>
+<tr><td>
+
+**Contact Book**
+```
+You:  Save that address as Alice
+Bot:  ✅ Saved "Alice" → 0x123...abc
+You:  Send her another 0.02
+Bot:  Preparing 0.02 ETH → Alice. Confirm?
+```
+
+</td><td>
+
+**Security Scan**
+```
+You:  Is 0xabc...123 safe?
+Bot:  ⚠️ High risk detected:
+      • transferOwnership(address)
+      • pause() — owner can freeze
+      • mint(address, uint256)
+```
+
+</td></tr>
+</table>
 
 ---
 
-## 🔗 Network Details
+## 📁 Project Structure
+
+```
+dimensity/
+├── src/                          # Standalone CLI agent (TypeScript)
+│   ├── agent/                    # Agent loop & prompt engine
+│   ├── providers/                # LLM adapters (Gemini, OpenAI, Claude)
+│   ├── signers/                  # LocalSigner, KernelSigner (AA-ready)
+│   └── tools/                    # 11 CLI tool implementations
+│
+├── web/                          # Next.js 15 full-stack web app
+│   ├── app/
+│   │   ├── page.tsx              # Auth gate → ConnectWallet / ChatInterface
+│   │   ├── globals.css           # Design system (CSS custom properties)
+│   │   └── api/
+│   │       ├── chat/route.ts     # Agent loop: 17 tools, per-request auth
+│   │       ├── execute-tool/     # Server-side execution after confirmation
+│   │       ├── auth/             # SIWE nonce + verify + NextAuth handler
+│   │       └── wallets/          # Wallet CRUD (add, switch, rename, delete)
+│   ├── components/
+│   │   ├── ChatInterface.tsx     # useChat hook, streaming, scroll logic
+│   │   ├── ConfirmationModal.tsx # Pre-flight approval for write operations
+│   │   ├── ConnectWallet.tsx     # SIWE MetaMask connection flow
+│   │   ├── Header.tsx            # Wallet switcher + sign out
+│   │   ├── MessageBubble.tsx     # Rich message rendering + inline tools
+│   │   └── SessionProvider.tsx   # NextAuth session wrapper
+│   ├── lib/
+│   │   ├── auth.ts               # NextAuth v5 config + SIWE + viem verify
+│   │   ├── clients.ts            # Shared viem public client
+│   │   ├── prisma.ts             # Singleton PrismaClient
+│   │   └── system-prompt.ts      # LLM persona + wallet/contact rules
+│   └── prisma/
+│       └── schema.prisma         # User, Wallet, Contact, Nonce models
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+| Requirement | Source |
+|:------------|:-------|
+| Node.js ≥ 18 | [nodejs.org](https://nodejs.org) |
+| MetaMask | [metamask.io](https://metamask.io) |
+| Gemini API Key | [Google AI Studio](https://aistudio.google.com/) |
+| Supabase Project | [supabase.com](https://supabase.com) (free tier) |
+| Testnet ETH | [Abstract Faucet](https://faucet.abs.xyz) |
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Hitman350/dimensity.git
+cd dimensity/web
+npm install
+```
+
+### 2. Configure Environment
+
+Create `web/.env.local`:
+
+```env
+# LLM Provider (default: Gemini)
+GEMINI_API_KEY=your_gemini_key
+
+# Signer (development — DO NOT use mainnet keys)
+PRIVATE_KEY=0x_your_testnet_private_key
+
+# Database (Supabase Postgres — use pooler URL)
+DATABASE_URL=postgresql://postgres.xxxxx:password@aws-0-region.pooler.supabase.com:5432/postgres
+
+# Auth
+NEXTAUTH_SECRET=<openssl rand -base64 32>
+NEXTAUTH_URL=http://localhost:3000
+```
+
+### 3. Initialize Database
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name init
+```
+
+### 4. Run
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000` → Connect MetaMask → Start chatting.
+
+---
+
+## 🔀 Switching LLM Providers
+
+Dimensity is **provider-agnostic**. Swap intelligence engines with one env var:
+
+| Provider | Env Var | Default Model |
+|:---------|:--------|:--------------|
+| **Google** (default) | `GEMINI_API_KEY` | `gemini-2.5-flash` |
+| **OpenAI** | `OPENAI_API_KEY` | `gpt-4o` |
+| **Anthropic** | `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
+
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+```
+
+All tool execution, streaming, and confirmation logic remains untouched.
+
+---
+
+## 🧩 Adding a New Tool
+
+Tools are registered inline in `web/app/api/chat/route.ts` using the Vercel AI SDK's `tool()` function:
+
+```typescript
+// Inside buildTools() in chat/route.ts
+get_network_status: tool({
+    description: "Get current block number and gas price on Abstract Testnet.",
+    parameters: z.object({}),
+    execute: async () => {
+        const [block, gasPrice] = await Promise.all([
+            publicClient.getBlockNumber(),
+            publicClient.getGasPrice(),
+        ]);
+        return JSON.stringify({
+            block: block.toString(),
+            gas_gwei: (Number(gasPrice) / 1e9).toFixed(4),
+        });
+    },
+}),
+```
+
+- **Read tools**: Include `execute` → auto-dispatched by the agent
+- **Write tools**: Omit `execute` → intercepted by `<ConfirmationModal />` for user approval
+
+No other code changes required. The agent loop auto-discovers registered tools.
+
+---
+
+## 🎯 Design Decisions
+
+| Decision | Choice | Rationale |
+|:---------|:-------|:----------|
+| **Provider-agnostic LLM** | Vercel AI SDK adapters | No vendor lock-in. Switch Gemini → GPT-4o with one env var |
+| **Signer abstraction** | `LocalSigner` / `KernelSigner` | LLM outputs intent, never touches cryptography |
+| **SIWE over Passkeys** | Existing MetaMask wallets | Target audience is crypto-native — no identity fragmentation |
+| **Blockscout over Alchemy** | REST API at `explorer.testnet.abs.xyz` | Free, fast, and indexes Abstract Testnet properly |
+| **Vanilla CSS over Tailwind** | CSS custom properties design system | Full control over design tokens, no build dependency |
+| **No conversation DB** | React `useChat` state | Simple. Persistence adds complexity with no immediate ROI |
+
+---
+
+## ⚠️ Limitations
+
+- **Not fully autonomous** — responds to user prompts, does not run background jobs
+- **Predefined tool set** — the LLM cannot write or execute arbitrary code
+- **Testnet only** — operates exclusively on Abstract Testnet
+- **Server-side signing** — development uses `.env` private key; production requires client-side MetaMask signing
+- **Requires MetaMask** — no embedded wallet fallback yet
+- **Ephemeral conversations** — history clears on page refresh
+- **Single active wallet** — AI views balances for the active wallet only
+
+---
+
+## 🗺️ Roadmap
+
+| Phase | Status | Description |
+|:------|:-------|:------------|
+| **Phase 1** | ✅ Complete | AI SDK integration, streaming chat, 10 blockchain tools, confirmation modal |
+| **Phase 2** | ✅ Complete | SIWE auth, multi-wallet, contact book, per-request signer |
+| **Phase 3** | 🔄 Planned | Proactive approval scanning, full tx simulation UI, client-side MetaMask signing |
+| **Phase 4** | 🔮 Future | Multi-chain (Arbitrum, Base), Passkey auth via ZeroDev, conversation persistence |
+
+---
+
+## 🌐 Network Details
 
 | Property | Value |
 |:---------|:------|
 | **Chain** | Abstract Testnet |
-| **Network Type** | zkSync-based Layer 2 |
-| **EIP-712** | Supported via `eip712WalletActions` |
-| **Faucet** | [faucet.abs.xyz](https://faucet.abs.xyz/) |
-| **Explorer** | [explorer.testnet.abs.xyz](https://explorer.testnet.abs.xyz/) |
+| **Type** | zkSync-based Layer 2 Rollup |
+| **Chain ID** | 11124 |
+| **EIP-712** | Required for all typed transactions |
+| **Faucet** | [faucet.abs.xyz](https://faucet.abs.xyz) |
+| **Explorer** | [explorer.testnet.abs.xyz](https://explorer.testnet.abs.xyz) |
 
 ---
 
-## 🧰 Tech Stack
+## 🛠️ Tech Stack
 
 | Technology | Role |
 |:-----------|:-----|
-| [**Google Generative AI SDK**](https://github.com/google-gemini/generative-ai-js) | Gemini 2.0 Flash with function calling — LLM-driven reasoning and tool selection |
-| [**viem**](https://viem.sh/) | Type-safe Ethereum client — public client for reads, wallet client for signing with EIP-712 |
-| [**TypeScript**](https://www.typescriptlang.org/) | Strict mode, ES2022 target, NodeNext module resolution |
-| [**dotenv**](https://github.com/motdotla/dotenv) | Environment variable management for key isolation |
+| **Next.js 15** | Full-stack App Router framework |
+| **Vercel AI SDK 4** | Streaming LLM orchestration with tool calling |
+| **viem 2** | Type-safe blockchain client with zkSync extensions |
+| **siwe** | Sign-In with Ethereum authentication |
+| **NextAuth.js v5** | JWT session management |
+| **Prisma 6** | Type-safe ORM for PostgreSQL |
+| **Supabase** | Managed PostgreSQL database |
+| **Zod** | Runtime schema validation for tool parameters |
+| **React 19** | UI rendering engine |
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome. To add a new on-chain tool:
-
-1. Create a new file in `src/tools/` implementing the `ToolConfig` interface.
-2. Define the function schema (`definition`) and the execution handler.
-3. Register the tool in `src/tools/allTools.ts`.
-
-```ts
-// Example: src/tools/myNewTool.ts
-import { ToolConfig } from "./allTools";
-
-export const myNewTool: ToolConfig<{ param: string }> = {
-  definition: {
-    type: "function",
-    function: {
-      name: "my_new_tool",
-      description: "Description of what this tool does",
-      parameters: {
-        type: "object",
-        properties: {
-          param: { type: "string", description: "Parameter description" },
-        },
-        required: ["param"],
-      },
-    },
-  },
-  handler: async ({ param }) => {
-    // Execution logic — this handler is dispatched by the agent loop
-    return `Result for ${param}`;
-  },
-};
-```
-
-The agent loop will automatically discover and dispatch to your new tool — no modifications to `performRun.ts` required.
-
----
+<div align="center">
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT © [Hitman350](https://github.com/Hitman350)
+
+<br />
+
+**If Dimensity helped you, consider giving it a ⭐**
+
+</div>
