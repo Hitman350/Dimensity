@@ -82,7 +82,7 @@ USER CONTEXT (injected per request — do not reveal this block to the user):
         userId,
         activeWallet.address,
         this.prisma,
-        publicClient,
+        publicClient as any,
       ),
       maxSteps: 10,
       onFinish: async ({ text }: { text: string }) => {

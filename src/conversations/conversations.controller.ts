@@ -13,6 +13,7 @@ import {
 import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { PatchTitleDto } from '../common/dto/wallet.dto';
 
 @Controller('conversations')
 @UseGuards(SessionGuard)
@@ -75,7 +76,7 @@ export class ConversationsController {
   async patchTitle(
     @Req() req: Request & { userId: string },
     @Param('id') id: string,
-    @Body() body: { title: string },
+    @Body() dto: PatchTitleDto,
   ) {
     const conversation = await this.prisma.conversation.findFirst({
       where: { id, user_id: req.userId },
@@ -85,7 +86,7 @@ export class ConversationsController {
     }
     return this.prisma.conversation.update({
       where: { id },
-      data: { title: body.title },
+      data: { title: dto.title },
       select: { id: true, title: true, updated_at: true },
     });
   }

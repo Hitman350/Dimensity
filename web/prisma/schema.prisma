@@ -11,11 +11,12 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  created_at    DateTime       @default(now())
-  wallets       Wallet[]
-  contacts      Contact[]
-  conversations Conversation[]
+  id              String           @id @default(cuid())
+  created_at      DateTime         @default(now())
+  wallets         Wallet[]
+  contacts        Contact[]
+  conversations   Conversation[]
+  transactionLogs TransactionLog[]
 }
 
 model Conversation {
@@ -65,4 +66,16 @@ model Nonce {
   value      String   @id
   expires_at DateTime
   used       Boolean  @default(false) // marked true after one use
+}
+
+model TransactionLog {
+  id           String   @id @default(cuid())
+  user_id      String
+  tool_call_id String   @unique // idempotency key — blocks duplicate transactions
+  tool_name    String
+  args         Json
+  tx_hash      String?
+  status       String   @default("pending") // pending | confirmed | failed
+  created_at   DateTime @default(now())
+  user         User     @relation(fields: [user_id], references: [id])
 }

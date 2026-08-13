@@ -55,7 +55,22 @@ export class ExecuteToolService {
     userId: string,
     toolName: string,
     args: Record<string, string>,
+    toolCallId?: string,
   ): Promise<{ result: string }> {
+    // --- Idempotency check: prevent double-execution of the same tool call ---
+    if (toolCallId) {
+      const existing = await this.prisma.transactionLog.findUnique({
+        where: { tool_call_id: toolCallId },
+      });
+      if (existing) {
+        return {
+          result: existing.tx_hash
+            ? `Already executed: ${existing.tx_hash}`
+            : 'Already processing',
+        };
+      }
+    }
+
     const activeWallet = await this.prisma.wallet.findFirst({
       where: { user_id: userId, is_active: true },
     });
@@ -77,7 +92,44 @@ export class ExecuteToolService {
       throw new Error(`Unknown tool: ${toolName}`);
     }
 
-    const result = await handler(args, walletClient, walletAddress);
-    return { result };
+    // Create log entry BEFORE execution (tracks intent even if tx fails)
+    let logId: string | undefined;
+    if (toolCallId) {
+      const log = await this.prisma.transactionLog.create({
+        data: {
+          user_id: userId,
+          tool_call_id: toolCallId,
+          tool_name: toolName,
+          args,
+        },
+      });
+      logId = log.id;
+    }
+
+    try {
+      const result = await handler(args, walletClient, walletAddress);
+
+      // Update log with result
+      if (logId) {
+        const txHashMatch = result.match(/0x[a-fA-F0-9]{64}/);
+        await this.prisma.transactionLog.update({
+          where: { id: logId },
+          data: {
+            tx_hash: txHashMatch?.[0] ?? null,
+            status: 'confirmed',
+          },
+        });
+      }
+
+      return { result };
+    } catch (error) {
+      if (logId) {
+        await this.prisma.transactionLog.update({
+          where: { id: logId },
+          data: { status: 'failed' },
+        });
+      }
+      throw error;
+    }
   }
 }

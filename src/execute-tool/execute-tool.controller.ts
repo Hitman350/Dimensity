@@ -8,6 +8,7 @@ import {
 import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard';
 import { ExecuteToolService } from './execute-tool.service';
+import { ExecuteToolDto } from '../common/dto/execute-tool.dto';
 
 @Controller('execute-tool')
 @UseGuards(SessionGuard)
@@ -17,9 +18,13 @@ export class ExecuteToolController {
   @Post()
   async post(
     @Req() req: Request & { userId: string },
-    @Body() body: { toolName: string; args: Record<string, string> },
+    @Body() dto: ExecuteToolDto,
   ) {
-    const { toolName, args } = body;
-    return this.executeTool.execute(req.userId, toolName, args);
+    return this.executeTool.execute(
+      req.userId,
+      dto.toolName,
+      dto.args,
+      dto.toolCallId,
+    );
   }
 }

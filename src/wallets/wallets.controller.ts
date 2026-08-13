@@ -17,6 +17,8 @@ import type { Request } from 'express';
 import { SiweMessage } from 'siwe';
 import { SessionGuard } from '../auth/session.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { AddWalletDto, PatchWalletDto } from '../common/dto/wallet.dto';
+import { EthereumAddressPipe } from '../common/pipes/ethereum-address.pipe';
 
 @Controller('wallets')
 @UseGuards(SessionGuard)
@@ -42,9 +44,9 @@ export class WalletsController {
   @Post()
   async add(
     @Req() req: Request & { userId: string },
-    @Body() body: { message: unknown; signature: string },
+    @Body() dto: AddWalletDto,
   ) {
-    const { message, signature } = body;
+    const { message, signature } = dto;
     if (!message || !signature) {
       throw new BadRequestException(
         'SIWE message and signature required to prove wallet ownership',
@@ -85,11 +87,11 @@ export class WalletsController {
   @Patch(':address')
   async patch(
     @Req() req: Request & { userId: string },
-    @Param('address') address: string,
-    @Body() body: { nickname?: string; is_active?: boolean },
+    @Param('address', EthereumAddressPipe) address: string,
+    @Body() dto: PatchWalletDto,
   ) {
     const normalizedAddress = address.toLowerCase();
-    const { nickname, is_active } = body;
+    const { nickname, is_active } = dto;
 
     const wallet = await this.prisma.wallet.findUnique({
       where: {
