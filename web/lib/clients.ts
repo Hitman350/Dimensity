@@ -8,18 +8,16 @@ import {
   type Account,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { abstractTestnet } from "viem/chains";
-import { eip712WalletActions } from "viem/zksync";
+import { baseSepolia } from "viem/chains";
 
 // Public client — read-only, safe to create at module level
 export const publicClient = createPublicClient({
-  chain: abstractTestnet,
+  chain: baseSepolia,
   transport: http(),
 });
 
-// Extended wallet client type with zkSync EIP-712 actions
-export type ExtendedWalletClient = WalletClient<Transport, Chain, Account> &
-  ReturnType<typeof eip712WalletActions>;
+// Standard wallet client type for EVM-compatible chains (Base, Optimism, Arbitrum)
+export type ExtendedWalletClient = WalletClient<Transport, Chain, Account>;
 
 // Per-request wallet client factory.
 // Creates a fresh wallet client scoped to a single API request.
@@ -31,7 +29,7 @@ export function createPerRequestWalletClient(
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   return createWalletClient({
     account,
-    chain: abstractTestnet,
+    chain: baseSepolia,
     transport: http(),
-  }).extend(eip712WalletActions()) as unknown as ExtendedWalletClient;
+  }) as unknown as ExtendedWalletClient;
 }

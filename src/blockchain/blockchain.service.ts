@@ -5,7 +5,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { createPublicClient, http, type PublicClient } from 'viem';
-import { abstractTestnet } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 
 @Injectable()
 export class BlockchainService {
@@ -13,7 +13,7 @@ export class BlockchainService {
 
   constructor() {
     this.publicClient = createPublicClient({
-      chain: abstractTestnet,
+      chain: baseSepolia,
       transport: http(),
     }) as PublicClient;
   }

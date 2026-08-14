@@ -1,7 +1,6 @@
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { abstractTestnet } from 'viem/chains';
-import { eip712WalletActions } from 'viem/zksync';
+import { baseSepolia } from 'viem/chains';
 import { createPublicClient } from 'viem';
 import type {
   Signer,
@@ -13,7 +12,7 @@ import type {
 } from './types';
 
 /**
- * Local development signer — wraps viem wallet client with EIP-712 support.
+ * Local development signer — wraps viem wallet client.
  * Uses a raw private key from environment variables.
  * For development / testnet use only.
  */
@@ -25,9 +24,9 @@ export class LocalSigner implements Signer {
     this.account = privateKeyToAccount(privateKey as `0x${string}`);
     this.walletClient = createWalletClient({
       account: this.account,
-      chain: abstractTestnet,
+      chain: baseSepolia,
       transport: http(),
-    }).extend(eip712WalletActions());
+    });
   }
 
   async getAddress(): Promise<string> {
@@ -51,7 +50,7 @@ export class LocalSigner implements Signer {
     });
 
     const publicClient = createPublicClient({
-      chain: abstractTestnet,
+      chain: baseSepolia,
       transport: http(),
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -64,7 +63,7 @@ export class LocalSigner implements Signer {
 
   async estimateGas(params: EstimateGasParams): Promise<GasEstimate> {
     const publicClient = createPublicClient({
-      chain: abstractTestnet,
+      chain: baseSepolia,
       transport: http(),
     });
 

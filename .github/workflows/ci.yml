@@ -1,4 +1,4 @@
-name: CI
+name: CI / CD
 
 on:
   push:
@@ -7,15 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  lint-test-build:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: CI — runs on every push and every PR
+  # ─────────────────────────────────────────────────────────────
+  ci:
+    name: Build & Validate
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
+          POSTGRES_DB: dimensity_test
+          POSTGRES_USER: dimensity
+          POSTGRES_PASSWORD: localdevonly
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
@@ -23,16 +28,84 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DATABASE_URL: postgresql://dimensity:localdevonly@localhost:5432/dimensity_test
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: http://localhost:3000
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - run: npm ci
-      - run: cd web && npm ci
+      # ── Install dependencies ──────────────────────────────────
+      - name: Install backend deps
+        run: npm ci
 
-      # Build verification
-      - run: npm run build
-      - run: cd web && npm run build
+      - name: Install frontend deps
+        run: cd web && npm ci
+
+      # ── Prisma ───────────────────────────────────────────────
+      - name: Validate Prisma schema
+        run: npx prisma validate --schema=./web/prisma/schema.prisma
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=./web/prisma/schema.prisma
+
+      - name: Push schema to test DB
+        run: npx prisma db push --schema=./web/prisma/schema.prisma --skip-generate
+
+      # ── Build verification ────────────────────────────────────
+      - name: Build NestJS backend
+        run: npm run build
+
+      - name: Build Next.js frontend
+        run: cd web && npm run build
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: CD — runs ONLY on push to main, after CI passes
+  # ─────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: ci                          # only runs if ci job passes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy backend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            cd ~/dimensity
+
+            echo "── Pulling latest code ──"
+            git pull origin main
+
+            echo "── Installing backend deps ──"
+            npm ci
+
+            echo "── Generating Prisma client ──"
+            npx prisma generate --schema=./web/prisma/schema.prisma
+
+            echo "── Running DB migrations ──"
+            npx prisma migrate deploy --schema=./web/prisma/schema.prisma
+
+            echo "── Building NestJS ──"
+            npm run build
+
+            echo "── Restarting API with PM2 ──"
+            pm2 restart dimensity-api || pm2 start dist/main.js --name dimensity-api
+
+            echo "✅ Backend deployed successfully"

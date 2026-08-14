@@ -43,7 +43,7 @@ model Wallet {
   user_id   String
   address   String // 0x... checksummed
   nickname  String? // "main", "trading", "cold storage"
-  chain     String   @default("abstract-testnet")
+  chain     String   @default("base-sepolia")
   is_active Boolean  @default(false) // only one active per user at a time
   added_at  DateTime @default(now())
   user      User     @relation(fields: [user_id], references: [id])
