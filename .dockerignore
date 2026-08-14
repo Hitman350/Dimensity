@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.github
+web/node_modules
+web/.next
+web/dist
+.env
+web/.env.local
+.DS_Store
