@@ -121,7 +121,7 @@ export function buildTools(
           gas_cost: `${(Number(gasCost) / 1e18).toFixed(6)} ETH`,
           block: receipt.blockNumber.toString(),
           contract_deployed: receipt.contractAddress ?? null,
-          explorer: `https://explorer.testnet.abs.xyz/tx/${tx_hash}`,
+          explorer: `https://sepolia.basescan.org/tx/${tx_hash}`,
         });
       },
     }),
@@ -179,7 +179,7 @@ export function buildTools(
             low: findings.filter((f) => f.severity === "LOW").map((f) => f.label),
           },
           recommendation: rec[risk],
-          explorer: `https://explorer.testnet.abs.xyz/address/${contract_address}`,
+          explorer: `https://sepolia.basescan.org/address/${contract_address}`,
         });
       },
     }),
@@ -211,7 +211,7 @@ export function buildTools(
           decimals: decimals.toString(),
           total_supply: supply.toLocaleString(),
           contract: contract_address,
-          explorer: `https://explorer.testnet.abs.xyz/address/${contract_address}`,
+          explorer: `https://sepolia.basescan.org/address/${contract_address}`,
         });
       },
     }),
@@ -249,7 +249,7 @@ export function buildTools(
 
     get_wallet_history: tool({
       description:
-        "Fetches the most recent transactions for a wallet on Abstract Testnet. If no address is provided, uses the connected wallet automatically.",
+        "Fetches the most recent transactions for a wallet on Base Sepolia. If no address is provided, uses the connected wallet automatically.",
       parameters: z.object({
         address: z
           .string()
@@ -259,14 +259,14 @@ export function buildTools(
       execute: async ({ address: inputAddr }) => {
         const address = inputAddr || activeWalletAddress;
         try {
-          const url = `https://explorer.testnet.abs.xyz/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=20`;
+          const url = `https://api-sepolia.basescan.org/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=20`;
           const response = await fetch(url);
 
           if (!response.ok) {
             return JSON.stringify({
               error: "Explorer API unavailable",
               message: "Unable to fetch history right now. Check manually:",
-              explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+              explorer_url: `https://sepolia.basescan.org/address/${address}`,
             });
           }
 
@@ -275,9 +275,9 @@ export function buildTools(
           if (data.status === "0") {
             return JSON.stringify({
               address,
-              message: "No transactions found for this wallet on Abstract Testnet",
+              message: "No transactions found for this wallet on Base Sepolia",
               transactions: [],
-              explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+              explorer_url: `https://sepolia.basescan.org/address/${address}`,
             });
           }
 
@@ -308,13 +308,13 @@ export function buildTools(
             total_sent: `${totalSent.toFixed(6)} ETH`,
             total_received: `${totalReceived.toFixed(6)} ETH`,
             recent_transactions: formatted.slice(0, 5),
-            explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+            explorer_url: `https://sepolia.basescan.org/address/${address}`,
           });
         } catch {
           return JSON.stringify({
             error: "Explorer API unavailable",
             message: "Unable to fetch history right now. Check manually:",
-            explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+            explorer_url: `https://sepolia.basescan.org/address/${address}`,
           });
         }
       },

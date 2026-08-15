@@ -126,7 +126,7 @@ export class ScanContractService implements ToolService {
             .map((f) => f.label),
         },
         recommendation,
-        explorer: `https://explorer.testnet.abs.xyz/address/${args.contract_address}`,
+        explorer: `https://sepolia.basescan.org/address/${args.contract_address}`,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

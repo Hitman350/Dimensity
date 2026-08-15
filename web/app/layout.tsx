@@ -5,7 +5,7 @@ import { SessionProvider } from "@/components/SessionProvider";
 export const metadata: Metadata = {
     title: "Dimensity — AI On-Chain Agent",
     description:
-        "Autonomous AI agent for blockchain operations on Abstract Testnet. Send ETH, deploy tokens, scan contracts — all through natural language.",
+        "Autonomous AI agent for blockchain operations on Base Sepolia. Send ETH, deploy tokens, scan contracts — all through natural language.",
 };
 
 export default function RootLayout({

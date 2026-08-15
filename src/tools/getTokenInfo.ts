@@ -91,7 +91,7 @@ export class GetTokenInfoService implements ToolService {
         decimals: decimals.toString(),
         total_supply: formattedSupply,
         contract: args.contract_address,
-        explorer: `https://explorer.testnet.abs.xyz/address/${args.contract_address}`,
+        explorer: `https://sepolia.basescan.org/address/${args.contract_address}`,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

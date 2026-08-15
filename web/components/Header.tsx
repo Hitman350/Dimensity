@@ -170,7 +170,7 @@ export function Header() {
                         className="text-xs"
                         style={{ color: "var(--color-text-secondary)" }}
                     >
-                        Abstract Testnet • AI Agent
+                        Base Sepolia • AI Agent
                     </p>
                 </div>
             </div>

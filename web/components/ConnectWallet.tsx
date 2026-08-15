@@ -47,7 +47,7 @@ export function ConnectWallet() {
                 statement: "Sign in to Dimensity — your AI crypto companion.",
                 uri: window.location.origin,
                 version: "1",
-                chainId: 11124, // Abstract Testnet
+                chainId: 84532, // Base Sepolia
                 nonce,
                 issuedAt: new Date().toISOString(), // must be included so server uses same timestamp
             };
@@ -157,7 +157,7 @@ export function ConnectWallet() {
                     className="text-xs"
                     style={{ color: "var(--color-text-secondary)" }}
                 >
-                    Abstract Testnet · No gas fees for signing
+                    Base Sepolia · No gas fees for signing
                 </p>
             </div>
         </div>

@@ -19,7 +19,7 @@ interface BlockscoutResponse {
   result: BlockscoutTx[];
 }
 
-const EXPLORER_API = 'https://explorer.testnet.abs.xyz/api';
+const EXPLORER_API = 'https://api-sepolia.basescan.org/api';
 
 @Injectable()
 export class GetWalletHistoryService implements ToolService {
@@ -28,7 +28,7 @@ export class GetWalletHistoryService implements ToolService {
   readonly definition: ToolDefinition = {
     name: 'get_wallet_history',
     description:
-      'Fetches the most recent transactions for a wallet on Abstract Testnet. If no address is provided, uses the connected wallet address automatically.',
+      'Fetches the most recent transactions for a wallet on Base Sepolia. If no address is provided, uses the connected wallet address automatically.',
     parameters: {
       type: 'object',
       properties: {
@@ -54,7 +54,7 @@ export class GetWalletHistoryService implements ToolService {
         return JSON.stringify({
           error: 'Explorer API unavailable',
           message: 'Unable to fetch history right now. Check manually:',
-          explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+          explorer_url: `https://sepolia.basescan.org/address/${address}`,
         });
       }
 
@@ -65,9 +65,9 @@ export class GetWalletHistoryService implements ToolService {
         return JSON.stringify({
           address,
           message:
-            'No transactions found for this wallet on Abstract Testnet.',
+            'No transactions found for this wallet on Base Sepolia.',
           transactions: [],
-          explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+          explorer_url: `https://sepolia.basescan.org/address/${address}`,
         });
       }
 
@@ -102,13 +102,13 @@ export class GetWalletHistoryService implements ToolService {
         total_sent: `${totalSent.toFixed(6)} ETH`,
         total_received: `${totalReceived.toFixed(6)} ETH`,
         recent_transactions: formatted.slice(0, 5),
-        explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+        explorer_url: `https://sepolia.basescan.org/address/${address}`,
       });
     } catch {
       return JSON.stringify({
         error: 'Explorer API unavailable',
         message: 'Unable to fetch history right now. Check manually:',
-        explorer_url: `https://explorer.testnet.abs.xyz/address/${address}`,
+        explorer_url: `https://sepolia.basescan.org/address/${address}`,
       });
     }
   }

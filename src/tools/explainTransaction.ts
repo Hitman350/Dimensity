@@ -48,7 +48,7 @@ export class ExplainTransactionService implements ToolService {
         gas_cost: `${gasCostEth} ETH`,
         block: receipt.blockNumber.toString(),
         contract_deployed: receipt.contractAddress ?? null,
-        explorer: `https://explorer.testnet.abs.xyz/tx/${args.tx_hash}`,
+        explorer: `https://sepolia.basescan.org/tx/${args.tx_hash}`,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

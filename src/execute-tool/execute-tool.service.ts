@@ -17,7 +17,7 @@ const handlers: Record<string, ToolHandler> = {
       to: to as `0x${string}`,
       value: parseEther(value ?? '0.01'),
     });
-    return `Transaction sent. Tx Hash: ${txHash}\nhttps://explorer.testnet.abs.xyz/tx/${txHash}`;
+    return `Transaction sent. Tx Hash: ${txHash}\nhttps://sepolia.basescan.org/tx/${txHash}`;
   },
 
   deploy_erc20: async ({ name, symbol, initialSupply }, wc) => {
@@ -28,7 +28,7 @@ const handlers: Record<string, ToolHandler> = {
       args: [name, symbol, supply],
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    return `${name} (${symbol}) deployed at: ${receipt.contractAddress}\nhttps://explorer.testnet.abs.xyz/address/${receipt.contractAddress}`;
+    return `${name} (${symbol}) deployed at: ${receipt.contractAddress}\nhttps://sepolia.basescan.org/address/${receipt.contractAddress}`;
   },
 
   estimate_gas: async ({ to, value }, _wc, addr) => {
