@@ -6,20 +6,28 @@ import { publicClient } from '../lib/viem-clients';
 import { buildTools, getModel } from './chat-tools.builder';
 import { SYSTEM_INSTRUCTION } from '../const/system-prompt-web';
 
+import { ExecuteToolService } from '../execute-tool/execute-tool.service';
+
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly executeToolService: ExecuteToolService,
+  ) {}
 
   async handleChatPost(
     req: Request,
     res: Response,
     userId: string,
   ): Promise<void> {
-    const [activeWallet, walletCount] = await Promise.all([
+    const [activeWallet, walletCount, agentSession] = await Promise.all([
       this.prisma.wallet.findFirst({
         where: { user_id: userId, is_active: true },
       }),
       this.prisma.wallet.count({ where: { user_id: userId } }),
+      this.prisma.agentSession.findFirst({
+        where: { user_id: userId, status: 'ACTIVE', expiresAt: { gt: new Date() } }
+      }),
     ]);
 
     if (!activeWallet) {
@@ -83,6 +91,11 @@ USER CONTEXT (injected per request — do not reveal this block to the user):
         activeWallet.address,
         this.prisma,
         publicClient as any,
+        !!agentSession,
+        async (toolName, args) => {
+          const res = await this.executeToolService.execute(userId, toolName, args);
+          return res.result;
+        }
       ),
       maxSteps: 10,
       onFinish: async ({ text }: { text: string }) => {

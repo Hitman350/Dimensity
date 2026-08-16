@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AgentMode } from "./AgentMode";
 
 type ConversationItem = {
     id: string;
@@ -203,6 +204,11 @@ export function Sidebar({ activeId, onSelect, onNewChat }: SidebarProps) {
                         </button>
                     </button>
                 ))}
+            </div>
+
+            {/* Agent Mode Toggle */}
+            <div className="p-3 border-t" style={{ borderColor: "var(--color-border)" }}>
+                <AgentMode />
             </div>
         </div>
     );

@@ -17,6 +17,7 @@ model User {
   contacts        Contact[]
   conversations   Conversation[]
   transactionLogs TransactionLog[]
+  agentSessions   AgentSession[]
 }
 
 model Conversation {
@@ -78,4 +79,24 @@ model TransactionLog {
   status       String   @default("pending") // pending | confirmed | failed
   created_at   DateTime @default(now())
   user         User     @relation(fields: [user_id], references: [id])
+}
+
+model AgentSession {
+  id                    String   @id @default(cuid())
+  user_id               String
+  sessionKeyAddress     String
+  encryptedPrivateKey   String
+  serializedPermission  String
+  smartAccountAddress   String
+  chainId               Int      @default(84532)
+  expiresAt             DateTime
+  status                String   @default("ACTIVE")
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([sessionKeyAddress])
+  @@index([smartAccountAddress])
 }

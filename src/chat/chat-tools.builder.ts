@@ -44,6 +44,8 @@ export function buildTools(
   activeWalletAddress: string,
   db: PrismaClient,
   pc: PublicClient,
+  isAgentActive: boolean = false,
+  executeTool?: (toolName: string, args: Record<string, string>) => Promise<string>
 ) {
   return {
     // ==================== EXISTING TOOLS ====================
@@ -82,7 +84,13 @@ export function buildTools(
           .optional()
           .describe("Amount of ether to send (in ETH). Defaults to 0.01"),
       }),
-      // No execute — requires client-side confirmation
+      ...(isAgentActive && executeTool
+        ? {
+            execute: async (args) => {
+              return await executeTool("send_transaction", args as any);
+            },
+          }
+        : {}), // No execute — requires client-side confirmation if disabled
     }),
 
     deploy_erc20: tool({
@@ -95,7 +103,13 @@ export function buildTools(
           .optional()
           .describe("Initial supply amount. Defaults to 1 billion"),
       }),
-      // No execute — requires client-side confirmation
+      ...(isAgentActive && executeTool
+        ? {
+            execute: async (args) => {
+              return await executeTool("deploy_erc20", args as any);
+            },
+          }
+        : {}), // No execute — requires client-side confirmation if disabled
     }),
 
     explain_transaction: tool({

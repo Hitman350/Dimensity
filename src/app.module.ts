@@ -8,6 +8,7 @@ import { ChatModule } from './chat/chat.module';
 import { ExecuteToolModule } from './execute-tool/execute-tool.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { WalletsModule } from './wallets/wallets.module';
+import { BlockchainModule } from './blockchain/blockchain.module';
 import { NonceCleanupService } from './common/tasks/nonce-cleanup.service';
 
 /** HTTP API — primary backend for the Next.js frontend (proxied via rewrites). */
@@ -28,6 +29,7 @@ import { NonceCleanupService } from './common/tasks/nonce-cleanup.service';
     ExecuteToolModule,
     ConversationsModule,
     WalletsModule,
+    BlockchainModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
