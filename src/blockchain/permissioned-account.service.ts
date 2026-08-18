@@ -52,6 +52,10 @@ export class PermissionedAccountService {
       sessionSigner
     );
 
+    if (permissionAccount.address.toLowerCase() !== session.smartAccountAddress.toLowerCase()) {
+      throw new Error(`Smart account mismatch. Expected ${session.smartAccountAddress}, got ${permissionAccount.address}`);
+    }
+
     const paymasterClient = createZeroDevPaymasterClient({
       chain: baseSepolia,
       transport: http(rpcUrl),

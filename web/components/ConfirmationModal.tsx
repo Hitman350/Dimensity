@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPublicClient, createWalletClient, custom, http, parseEther } from "viem";
+import { baseSepolia } from "viem/chains";
+import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
+import { constants, createKernelAccount, createKernelAccountClient, createZeroDevPaymasterClient } from "@zerodev/sdk";
 
 interface ToolInvocation {
     toolCallId: string;
@@ -14,12 +18,14 @@ interface ConfirmationModalProps {
     toolCall: ToolInvocation;
     onConfirm: (toolCallId: string, result: string) => void;
     onCancel: (toolCallId: string) => void;
+    isAgentActive?: boolean;
 }
 
 export default function ConfirmationModal({
     toolCall,
     onConfirm,
     onCancel,
+    isAgentActive,
 }: ConfirmationModalProps) {
     const [gasEstimate, setGasEstimate] = useState<{
         gas_units: string;
@@ -66,24 +72,105 @@ export default function ConfirmationModal({
         setError(null);
 
         try {
-            const res = await fetch("/api/execute-tool", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    toolName: toolCall.toolName,
-                    args: toolCall.args,
-                }),
-            });
+            if (isAgentActive) {
+                const res = await fetch("/api/execute-tool", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        toolName: toolCall.toolName,
+                        args: toolCall.args,
+                    }),
+                });
 
-            const data = await res.json();
+                const data = await res.json();
 
-            if (!res.ok) {
-                setError(data.error || "Execution failed");
-                setExecuting(false);
-                return;
+                if (!res.ok) {
+                    setError(data.error || "Execution failed");
+                    setExecuting(false);
+                    return;
+                }
+
+                onConfirm(toolCall.toolCallId, data.result);
+            } else {
+                if (typeof window === "undefined" || !window.ethereum) {
+                    throw new Error("MetaMask not found.");
+                }
+
+                if (isDeploy) {
+                    throw new Error("Deployments via manual mode are not yet supported.");
+                }
+
+                const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
+                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                const ownerAddress = accounts[0];
+
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x14a34' }],
+                    });
+                } catch (switchError: any) {
+                    if (switchError.code === 4902) {
+                        throw new Error("Base Sepolia network not found in your MetaMask.");
+                    }
+                    throw switchError;
+                }
+
+                const walletClient = createWalletClient({
+                    account: ownerAddress as `0x${string}`,
+                    chain: baseSepolia,
+                    transport: custom(window.ethereum),
+                });
+
+                const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
+                    signer: {
+                        address: ownerAddress as `0x${string}`,
+                        type: "local",
+                        async signMessage({ message }: any) {
+                            return walletClient.signMessage({ account: ownerAddress as `0x${string}`, message });
+                        },
+                        async signTypedData(typedData: any) {
+                            return walletClient.signTypedData({ account: ownerAddress as `0x${string}`, ...typedData });
+                        }
+                    } as any,
+                    entryPoint: constants.getEntryPoint('0.7'),
+                    kernelVersion: constants.KERNEL_V3_1,
+                });
+
+                const account = await createKernelAccount(publicClient, {
+                    plugins: { sudo: ecdsaValidator },
+                    entryPoint: constants.getEntryPoint('0.7'),
+                    kernelVersion: constants.KERNEL_V3_1,
+                });
+
+                const rpcUrl = process.env.NEXT_PUBLIC_ZERODEV_RPC_URL;
+                if (!rpcUrl) throw new Error("Missing ZeroDev RPC URL");
+
+                const paymasterClient = createZeroDevPaymasterClient({
+                    chain: baseSepolia,
+                    transport: http(rpcUrl),
+                });
+
+                const kernelClient = createKernelAccountClient({
+                    account,
+                    chain: baseSepolia,
+                    bundlerTransport: http(rpcUrl),
+                    paymaster: paymasterClient,
+                });
+
+                const userOpHash = await kernelClient.sendUserOperation({
+                    calls: [{
+                        to: toolCall.args.to as `0x${string}`,
+                        value: parseEther(toolCall.args.value || '0.01'),
+                        data: '0x',
+                    }]
+                });
+
+                const receipt = await kernelClient.waitForUserOperationReceipt({ hash: userOpHash });
+                const result = `Transaction sent successfully.\nUserOp Hash: ${userOpHash}\nTx Hash: ${receipt.receipt.transactionHash}\nhttps://sepolia.basescan.org/tx/${receipt.receipt.transactionHash}`;
+
+                onConfirm(toolCall.toolCallId, result);
             }
-
-            onConfirm(toolCall.toolCallId, data.result);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Network error");
             setExecuting(false);

@@ -6,7 +6,7 @@ import { baseSepolia } from "viem/chains";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { toPermissionValidator, serializePermissionAccount } from "@zerodev/permissions";
 import { toEmptyECDSASigner } from "@zerodev/permissions/signers";
-import { toSudoPolicy } from "@zerodev/permissions/policies";
+import { toSudoPolicy, toTimestampPolicy } from "@zerodev/permissions/policies";
 import { constants, createKernelAccount } from "@zerodev/sdk";
 
 import { useEffect } from "react";
@@ -102,15 +102,18 @@ export function AgentMode() {
             // 5. Create the permission validator for the Session Key
             const emptySessionSigner = await toEmptyECDSASigner(sessionKeyAddress as `0x${string}`);
 
-            // Create policy: allow any target/value up to 0.01 ETH for now (or explicit)
-            // Note: toSudoPolicy allows all calls for this demo.
+            // Enforce on-chain 24h expiration
+            const validUntil = Math.floor(Date.now() / 1000) + 24 * 3600;
+            const timestampPolicy = toTimestampPolicy({ validUntil });
+
+            // Note: toSudoPolicy allows all calls, but backend enforces value limits + idempotency
             const sudoPolicy = toSudoPolicy({});
 
             const permissionPlugin = await toPermissionValidator(publicClient, {
                 entryPoint: constants.getEntryPoint('0.7'),
                 kernelVersion: constants.KERNEL_V3_1,
                 signer: emptySessionSigner,
-                policies: [sudoPolicy],
+                policies: [timestampPolicy, sudoPolicy],
             });
 
             // 6. Sign the permission payload with the Owner's MetaMask (this triggers the popup)

@@ -84,13 +84,11 @@ export function buildTools(
           .optional()
           .describe("Amount of ether to send (in ETH). Defaults to 0.01"),
       }),
-      ...(isAgentActive && executeTool
-        ? {
-            execute: async (args) => {
-              return await executeTool("send_transaction", args as any);
-            },
+      execute: (isAgentActive && executeTool
+        ? async (args: any) => {
+            return await executeTool("send_transaction", args);
           }
-        : {}), // No execute — requires client-side confirmation if disabled
+        : undefined) as any,
     }),
 
     deploy_erc20: tool({
@@ -103,13 +101,11 @@ export function buildTools(
           .optional()
           .describe("Initial supply amount. Defaults to 1 billion"),
       }),
-      ...(isAgentActive && executeTool
-        ? {
-            execute: async (args) => {
-              return await executeTool("deploy_erc20", args as any);
-            },
+      execute: (isAgentActive && executeTool
+        ? async (args: any) => {
+            return await executeTool("deploy_erc20", args);
           }
-        : {}), // No execute — requires client-side confirmation if disabled
+        : undefined) as any,
     }),
 
     explain_transaction: tool({

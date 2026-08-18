@@ -17,6 +17,14 @@ interface ChatInterfaceProps {
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     const [initialMessages, setInitialMessages] = useState<Message[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [isAgentActive, setIsAgentActive] = useState(false);
+
+    useEffect(() => {
+        fetch("/api/agent/session/status")
+            .then((res) => res.json())
+            .then((data) => setIsAgentActive(!!data.isActive))
+            .catch(console.error);
+    }, []);
 
     // Load message history when conversationId changes
     useEffect(() => {
@@ -62,6 +70,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             conversationId={conversationId}
             initialMessages={initialMessages}
             loadingHistory={loadingHistory}
+            isAgentActive={isAgentActive}
         />
     );
 }
@@ -70,10 +79,12 @@ function ChatInner({
     conversationId,
     initialMessages,
     loadingHistory,
+    isAgentActive,
 }: {
     conversationId: string | null;
     initialMessages: Message[];
     loadingHistory: boolean;
+    isAgentActive: boolean;
 }) {
     const {
         messages,
@@ -299,6 +310,7 @@ function ChatInner({
                     toolCall={pendingToolCall}
                     onConfirm={handleConfirm}
                     onCancel={handleCancel}
+                    isAgentActive={isAgentActive}
                 />
             )}
         </div>

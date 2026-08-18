@@ -19,10 +19,10 @@ export async function POST(req: Request) {
         }
 
         if (revokeAll) {
-            // Mark all as revoked
+            // Mark all as revoked and destroy key material
             await prisma.agentSession.updateMany({
                 where: { user_id: userId, status: "ACTIVE" },
-                data: { status: "REVOKED" }
+                data: { status: "REVOKED", encryptedPrivateKey: "" }
             });
         } else {
             // Find the agent session
@@ -38,10 +38,10 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: "Forbidden" }, { status: 403 });
             }
 
-            // Mark as revoked
+            // Mark as revoked and destroy key material
             await prisma.agentSession.update({
                 where: { id: sessionId },
-                data: { status: "REVOKED" }
+                data: { status: "REVOKED", encryptedPrivateKey: "" }
             });
         }
 

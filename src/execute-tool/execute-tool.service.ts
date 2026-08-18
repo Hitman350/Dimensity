@@ -1,9 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { parseEther, formatEther, formatGwei, createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
-import { PrismaService } from '../prisma/prisma.service';
-import { PermissionedAccountService } from '../blockchain/permissioned-account.service';
-import type { KernelAccountClient } from '@zerodev/sdk';
+import { Injectable } from "@nestjs/common";
+import {
+  parseEther,
+  formatEther,
+  formatGwei,
+  createPublicClient,
+  http,
+} from "viem";
+import { baseSepolia } from "viem/chains";
+import { PrismaService } from "../prisma/prisma.service";
+import { PermissionedAccountService } from "../blockchain/permissioned-account.service";
+import type { KernelAccountClient } from "@zerodev/sdk";
 
 type ToolHandler = (
   args: Record<string, string>,
@@ -12,37 +18,48 @@ type ToolHandler = (
 
 const handlers: Record<string, ToolHandler> = {
   send_transaction: async ({ to, value }, client) => {
-    const userOpHash = await client.sendUserOperation({
-      calls: [{
-        to: to as `0x${string}`,
-        value: parseEther(value || '0'),
-        data: '0x',
-      }]
-    }).catch((err: any) => {
-      console.error("sendUserOperation error:", err);
-      if (err.details) console.error("Error details:", err.details);
-      if (err.metaMessages) console.error("Meta messages:", err.metaMessages);
-      throw err;
+    const userOpHash = await client
+      .sendUserOperation({
+        calls: [
+          {
+            to: to as `0x${string}`,
+            value: parseEther(value || "0"),
+            data: "0x",
+          },
+        ],
+      })
+      .catch((err: any) => {
+        console.error("sendUserOperation error:", err);
+        if (err.details) console.error("Error details:", err.details);
+        if (err.metaMessages) console.error("Meta messages:", err.metaMessages);
+        throw err;
+      });
+    const receipt = await client.waitForUserOperationReceipt({
+      hash: userOpHash,
     });
-    const receipt = await client.waitForUserOperationReceipt({ hash: userOpHash });
     return `Transaction sent successfully.\nUserOp Hash: ${userOpHash}\nTx Hash: ${receipt.receipt.transactionHash}\nhttps://sepolia.basescan.org/tx/${receipt.receipt.transactionHash}`;
   },
 
   deploy_erc20: async ({ name, symbol, initialSupply }, client) => {
     // Note: To deploy a contract with KernelAccountClient, we can pass the bytecode and args as data to the zero address (or no 'to' field)
-    // However, viem's encodeDeployData is usually needed. 
+    // However, viem's encodeDeployData is usually needed.
     // This requires specific implementation, but for now we throw since agent needs ERC20 factory or encodeDeployData.
-    throw new Error('deploy_erc20 via Session Key requires factory/encodeDeployData setup');
+    throw new Error(
+      "deploy_erc20 via Session Key requires factory/encodeDeployData setup",
+    );
   },
 };
 
 @Injectable()
 export class ExecuteToolService {
-  private publicClient = createPublicClient({ chain: baseSepolia, transport: http(process.env.BASE_SEPOLIA_RPC_URL) });
+  private publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(process.env.BASE_SEPOLIA_RPC_URL),
+  });
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly permissionedAccount: PermissionedAccountService
+    private readonly permissionedAccount: PermissionedAccountService,
   ) {}
 
   async execute(
@@ -60,23 +77,23 @@ export class ExecuteToolService {
         return {
           result: existing.tx_hash
             ? `Already executed: ${existing.tx_hash}`
-            : 'Already processing',
+            : "Already processing",
         };
       }
     }
 
     // Determine if it's a read or write operation.
     // Read operations do NOT require a session key.
-    if (toolName === 'estimate_gas') {
+    if (toolName === "estimate_gas") {
       const activeWallet = await this.prisma.wallet.findFirst({
         where: { user_id: userId, is_active: true },
       });
-      if (!activeWallet) throw new Error('No active wallet found');
-      
+      if (!activeWallet) throw new Error("No active wallet found");
+
       const gasUnits = await this.publicClient.estimateGas({
         account: activeWallet.address as `0x${string}`,
         to: args.to as `0x${string}`,
-        value: parseEther(args.value || '0'),
+        value: parseEther(args.value || "0"),
       });
       const gasPrice = await this.publicClient.getGasPrice();
       const totalCost = gasUnits * gasPrice;
@@ -85,7 +102,7 @@ export class ExecuteToolService {
           gas_units: gasUnits.toString(),
           gas_price_gwei: formatGwei(gasPrice),
           total_cost_eth: formatEther(totalCost),
-        })
+        }),
       };
     }
 
@@ -94,10 +111,43 @@ export class ExecuteToolService {
       throw new Error(`Unknown tool: ${toolName}`);
     }
 
-    // For write operations, use the PermissionedAccountService
-    const kernelClient = await this.permissionedAccount.getSessionClient(userId);
+    // Security limits for autonomous write operations
+    if (toolName === "send_transaction") {
+      const amountEth = Number(args.value || "0.01");
 
-    // Defense-in-depth cumulative limits could go here (e.g. check DB sum for last 24h)
+      if (amountEth > 0.01) {
+        throw new Error(
+          "Transaction value exceeds per-transaction limit of 0.01 ETH in Agent Mode.",
+        );
+      }
+
+      const yesterday = new Date();
+      yesterday.setHours(yesterday.getHours() - 24);
+
+      const recentLogs = await this.prisma.transactionLog.findMany({
+        where: {
+          user_id: userId,
+          tool_name: "send_transaction",
+          status: "confirmed",
+          created_at: { gte: yesterday },
+        },
+      });
+
+      const totalRecentEth = recentLogs.reduce((sum, log) => {
+        const logArgs = log.args as { value?: string };
+        return sum + Number(logArgs.value || "0.01");
+      }, 0);
+
+      if (totalRecentEth + amountEth > 0.1) {
+        throw new Error(
+          `Cumulative 24h spending limit (0.1 ETH) exceeded. You have already spent ${totalRecentEth.toFixed(4)} ETH in the last 24h.`,
+        );
+      }
+    }
+
+    // For write operations, use the PermissionedAccountService
+    const kernelClient =
+      await this.permissionedAccount.getSessionClient(userId);
 
     let logId: string | undefined;
     if (toolCallId) {
@@ -121,7 +171,7 @@ export class ExecuteToolService {
           where: { id: logId },
           data: {
             tx_hash: txHashMatch?.[1] ?? null,
-            status: 'confirmed',
+            status: "confirmed",
           },
         });
       }
@@ -131,9 +181,19 @@ export class ExecuteToolService {
       if (logId) {
         await this.prisma.transactionLog.update({
           where: { id: logId },
-          data: { status: 'failed' },
+          data: { status: "failed" },
         });
       }
+
+      if (
+        (error as any)?.message?.includes("AA33") ||
+        (error as any)?.message?.includes("paymaster")
+      ) {
+        throw new Error(
+          "Transaction failed: ZeroDev paymaster sponsorship limit exhausted or rejected. Please manually fund the smart account or try again later.",
+        );
+      }
+
       throw error;
     }
   }
