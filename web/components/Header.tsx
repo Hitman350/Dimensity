@@ -12,6 +12,10 @@ type Wallet = {
     is_active: boolean;
 };
 
+function truncateAddress(addr: string) {
+    return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "No wallet";
+}
+
 export function Header() {
     const { data: session } = useSession();
     const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -20,22 +24,15 @@ export function Header() {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const activeWallet = wallets.find((w) => w.is_active);
-    const userAddress = (session?.user as Record<string, unknown>)?.address as
-        | string
-        | undefined;
+    const userAddress = (session?.user as Record<string, unknown>)?.address as string | undefined;
 
-    // Fetch wallets on mount
     useEffect(() => {
         fetchWallets();
     }, []);
 
-    // Close dropdown on outside click
     useEffect(() => {
         function handleClick(e: MouseEvent) {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(e.target as Node)
-            ) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setDropdownOpen(false);
             }
         }
@@ -72,26 +69,16 @@ export function Header() {
     async function handleAddWallet() {
         if (addingWallet) return;
         setAddingWallet(true);
-
         try {
             if (!window.ethereum) {
                 alert("MetaMask not found");
                 return;
             }
-
-            const accounts = (await window.ethereum.request({
-                method: "eth_requestAccounts",
-            })) as string[];
-
+            const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
             if (!accounts?.length) return;
-
             const address = getAddress(accounts[0]);
-
-            // Get nonce
             const nonceRes = await fetch("/api/auth/nonce");
             const { nonce } = await nonceRes.json();
-
-            // Build SIWE message
             const message = new SiweMessage({
                 domain: window.location.host,
                 address,
@@ -101,28 +88,21 @@ export function Header() {
                 chainId: 11124,
                 nonce,
             });
-
             const messageStr = message.prepareMessage();
-
-            // Sign with MetaMask
             const signature = (await window.ethereum.request({
                 method: "personal_sign",
                 params: [messageStr, address],
             })) as string;
-
-            // Add wallet
             const res = await fetch("/api/wallets", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: messageStr, signature }),
             });
-
             if (!res.ok) {
                 const err = await res.json();
                 alert(err.error || "Failed to add wallet");
                 return;
             }
-
             await fetchWallets();
             setDropdownOpen(false);
         } catch (err) {
@@ -132,187 +112,75 @@ export function Header() {
         }
     }
 
-    function truncateAddress(addr: string) {
-        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-    }
-
     const displayAddress = activeWallet?.address || userAddress || "";
-    const displayName = activeWallet?.nickname || null;
+    const displayName = activeWallet?.nickname || "Main Wallet";
 
     return (
         <header
-            className="flex items-center justify-between px-6 py-3 border-b"
-            style={{
-                borderColor: "var(--color-border)",
-                background: "var(--color-surface-raised)",
-            }}
+            className="flex min-h-16 shrink-0 items-center justify-between border-b px-[18px]"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
         >
-            {/* Left — Logo */}
-            <div className="flex items-center gap-3">
-                <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold"
-                    style={{
-                        background:
-                            "linear-gradient(135deg, var(--color-accent), var(--color-accent-light))",
-                        color: "white",
-                    }}
-                >
-                    D
-                </div>
-                <div>
-                    <h1
-                        className="text-sm font-semibold"
-                        style={{ color: "var(--color-text-primary)" }}
-                    >
-                        Dimensity
-                    </h1>
-                    <p
-                        className="text-xs"
-                        style={{ color: "var(--color-text-secondary)" }}
-                    >
-                        Base Sepolia • AI Agent
-                    </p>
-                </div>
+            <div className="min-w-0">
+                <h1 className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">Dimensity</h1>
+                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">Base Sepolia <span className="mx-1">•</span> AI Agent</p>
             </div>
 
-            {/* Right — Wallet switcher + Sign out */}
-            <div className="flex items-center gap-3">
-                {/* Wallet dropdown */}
+            <div className="flex items-center gap-2">
+                <div className="agent-pulse flex h-[34px] items-center gap-2 rounded-[9px] border px-3" style={{ background: "#0e1213", borderColor: "#173425" }}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+                    <span className="text-[11px] font-medium text-[var(--color-success)]">Agent active</span>
+                </div>
+
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setDropdownOpen(!dropdownOpen)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
-                        style={{
-                            background: "var(--color-surface-overlay)",
-                            border: "1px solid var(--color-border)",
-                            color: "var(--color-text-primary)",
-                        }}
+                        className="flex h-[34px] cursor-pointer items-center gap-2 rounded-[9px] border px-3 text-[11px] transition-colors hover:bg-white/[0.04]"
+                        style={{ background: "var(--color-surface-overlay)", borderColor: "var(--color-border)", color: "var(--color-text-primary)" }}
+                        aria-expanded={dropdownOpen}
                     >
-                        <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ background: "#22c55e" }}
-                        />
-                        <span>
-                            {displayName
-                                ? `${displayName} (${truncateAddress(displayAddress)})`
-                                : truncateAddress(displayAddress)}
-                        </span>
-                        <svg
-                            width="10"
-                            height="6"
-                            viewBox="0 0 10 6"
-                            fill="none"
-                            style={{
-                                transform: dropdownOpen
-                                    ? "rotate(180deg)"
-                                    : "rotate(0deg)",
-                                transition: "transform 0.15s",
-                            }}
-                        >
-                            <path
-                                d="M1 1L5 5L9 1"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+                        <span>{displayName} <span className="text-[var(--color-text-muted)]">{truncateAddress(displayAddress)}</span></span>
+                        <span className="ml-1 text-[var(--color-text-muted)]">⌄</span>
                     </button>
 
                     {dropdownOpen && (
-                        <div
-                            className="absolute right-0 top-full mt-1 w-64 rounded-xl border shadow-lg z-50 overflow-hidden"
-                            style={{
-                                background: "var(--color-surface-raised)",
-                                borderColor: "var(--color-border)",
-                            }}
-                        >
-                            <div
-                                className="px-3 py-2 text-xs font-medium border-b"
-                                style={{
-                                    color: "var(--color-text-secondary)",
-                                    borderColor: "var(--color-border)",
-                                }}
-                            >
-                                Your Wallets
+                        <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border shadow-[0_20px_60px_rgba(0,0,0,0.45)]" style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}>
+                            <div className="border-b px-3 py-2.5 text-[10px] font-semibold tracking-[0.1em] text-[var(--color-text-muted)]" style={{ borderColor: "var(--color-border)" }}>
+                                YOUR WALLETS
                             </div>
-
                             {wallets.map((w) => (
                                 <button
                                     key={w.address}
-                                    onClick={() =>
-                                        !w.is_active && switchWallet(w.address)
-                                    }
-                                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left text-xs transition-colors cursor-pointer"
-                                    style={{
-                                        color: "var(--color-text-primary)",
-                                        background: w.is_active
-                                            ? "var(--color-surface-overlay)"
-                                            : "transparent",
-                                    }}
+                                    onClick={() => !w.is_active && switchWallet(w.address)}
+                                    className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
+                                    style={{ background: w.is_active ? "var(--color-surface-overlay)" : "transparent", color: "var(--color-text-primary)" }}
                                 >
-                                    <div
-                                        className="w-2 h-2 rounded-full flex-shrink-0"
-                                        style={{
-                                            background: w.is_active
-                                                ? "#22c55e"
-                                                : "var(--color-border)",
-                                        }}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        {w.nickname && (
-                                            <div className="font-medium truncate">
-                                                {w.nickname}
-                                            </div>
-                                        )}
-                                        <div
-                                            className="truncate"
-                                            style={{
-                                                color: "var(--color-text-secondary)",
-                                            }}
-                                        >
-                                            {truncateAddress(w.address)}
-                                        </div>
-                                    </div>
-                                    {w.is_active && (
-                                        <span
-                                            className="text-[10px] px-1.5 py-0.5 rounded"
-                                            style={{
-                                                background: "#22c55e20",
-                                                color: "#22c55e",
-                                            }}
-                                        >
-                                            active
-                                        </span>
-                                    )}
+                                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: w.is_active ? "var(--color-success)" : "var(--color-border-strong)" }} />
+                                    <span className="min-w-0 flex-1">
+                                        {w.nickname && <span className="block truncate text-xs font-medium">{w.nickname}</span>}
+                                        <span className="block truncate text-[11px] text-[var(--color-text-secondary)]">{truncateAddress(w.address)}</span>
+                                    </span>
+                                    {w.is_active && <span className="rounded bg-[rgba(41,209,122,0.1)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-success)]">ACTIVE</span>}
                                 </button>
                             ))}
-
                             <button
                                 onClick={handleAddWallet}
                                 disabled={addingWallet}
-                                className="w-full px-3 py-2.5 text-xs text-left transition-colors cursor-pointer border-t"
-                                style={{
-                                    color: "var(--color-accent)",
-                                    borderColor: "var(--color-border)",
-                                }}
+                                className="w-full cursor-pointer border-t px-3 py-2.5 text-left text-[11px] font-medium text-[var(--color-accent-light)] transition-colors hover:bg-white/[0.03] disabled:opacity-50"
+                                style={{ borderColor: "var(--color-border)" }}
                             >
-                                {addingWallet ? "Adding..." : "+ Add Wallet"}
+                                {addingWallet ? "Adding wallet…" : "+ Add wallet"}
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* Sign out */}
                 <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
-                    style={{
-                        border: "1px solid var(--color-border)",
-                        color: "var(--color-text-secondary)",
-                    }}
+                    className="hidden cursor-pointer rounded-[9px] border px-3 py-2 text-[11px] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-secondary)] sm:block"
+                    style={{ borderColor: "var(--color-border)" }}
                 >
-                    Sign Out
+                    Sign out
                 </button>
             </div>
         </header>
