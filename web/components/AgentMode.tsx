@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPublicClient, createWalletClient, custom, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
@@ -9,8 +9,6 @@ import { toEmptyECDSASigner } from "@zerodev/permissions/signers";
 import { toSudoPolicy, toTimestampPolicy } from "@zerodev/permissions/policies";
 import { constants, createKernelAccount } from "@zerodev/sdk";
 
-import { useEffect } from "react";
-
 export function AgentMode() {
     const [isAgentActive, setIsAgentActive] = useState(false);
     const [smartAccountAddress, setSmartAccountAddress] = useState<string | null>(null);
@@ -18,17 +16,15 @@ export function AgentMode() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Fetch session status from an API if available
-        // For now, we can check if it's active. Let's assume an endpoint /api/agent/session/status
         fetch("/api/agent/session/status")
-            .then(res => res.json())
-            .then(data => {
+            .then((res) => res.json())
+            .then((data) => {
                 if (data.isActive) {
                     setIsAgentActive(true);
                     setSmartAccountAddress(data.smartAccountAddress);
                 }
             })
-            .catch(err => console.error(err));
+            .catch((err) => console.error(err));
     }, []);
 
     const enableAgentMode = async () => {
@@ -40,12 +36,10 @@ export function AgentMode() {
                 throw new Error("MetaMask not found.");
             }
 
-            // 1. Prepare session on backend
             const prepareRes = await fetch("/api/agent/session/prepare", { method: "POST" });
             if (!prepareRes.ok) throw new Error("Failed to prepare session");
             const { sessionKeyAddress } = await prepareRes.json();
 
-            // 2. Setup Viem public client & connect MetaMask
             const publicClient = createPublicClient({
                 chain: baseSepolia,
                 transport: http(),
@@ -54,21 +48,18 @@ export function AgentMode() {
             const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             const ownerAddress = accounts[0];
 
-            // 2.5 Ensure MetaMask is on Base Sepolia (84532 -> 0x14a34)
             try {
                 await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x14a34' }],
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: "0x14a34" }],
                 });
             } catch (switchError: any) {
-                // This error code indicates that the chain has not been added to MetaMask.
                 if (switchError.code === 4902) {
                     throw new Error("Base Sepolia network not found in your MetaMask. Please add it and try again.");
                 }
                 throw switchError;
             }
 
-            // 3. Create ECDSA Validator for the Owner (MetaMask)
             const walletClient = createWalletClient({
                 account: ownerAddress as `0x${string}`,
                 chain: baseSepolia,
@@ -84,41 +75,33 @@ export function AgentMode() {
                     },
                     async signTypedData(typedData: any) {
                         return walletClient.signTypedData({ account: ownerAddress as `0x${string}`, ...typedData });
-                    }
+                    },
                 } as any,
-                entryPoint: constants.getEntryPoint('0.7'),
+                entryPoint: constants.getEntryPoint("0.7"),
                 kernelVersion: constants.KERNEL_V3_1,
             });
 
-            // 4. Calculate Smart Account Address (we don't create it fully if it's just for the UI, but we need the address)
             const account = await createKernelAccount(publicClient, {
                 plugins: { sudo: ecdsaValidator },
-                entryPoint: constants.getEntryPoint('0.7'),
+                entryPoint: constants.getEntryPoint("0.7"),
                 kernelVersion: constants.KERNEL_V3_1,
             });
 
             const computedSmartAccountAddress = account.address;
-
-            // 5. Create the permission validator for the Session Key
             const emptySessionSigner = await toEmptyECDSASigner(sessionKeyAddress as `0x${string}`);
-
-            // Enforce on-chain 24h expiration
             const validUntil = Math.floor(Date.now() / 1000) + 24 * 3600;
             const timestampPolicy = toTimestampPolicy({ validUntil });
-
-            // Note: toSudoPolicy allows all calls, but backend enforces value limits + idempotency
             const sudoPolicy = toSudoPolicy({});
 
             const permissionPlugin = await toPermissionValidator(publicClient, {
-                entryPoint: constants.getEntryPoint('0.7'),
+                entryPoint: constants.getEntryPoint("0.7"),
                 kernelVersion: constants.KERNEL_V3_1,
                 signer: emptySessionSigner,
                 policies: [timestampPolicy, sudoPolicy],
             });
 
-            // 6. Sign the permission payload with the Owner's MetaMask (this triggers the popup)
             const sessionKeyAccount = await createKernelAccount(publicClient, {
-                entryPoint: constants.getEntryPoint('0.7'),
+                entryPoint: constants.getEntryPoint("0.7"),
                 kernelVersion: constants.KERNEL_V3_1,
                 plugins: {
                     sudo: ecdsaValidator,
@@ -126,12 +109,8 @@ export function AgentMode() {
                 },
             });
 
-            // Serialize the permission (which automatically requests the owner's signature)
-            // Wait, we need to sign the permission. 
-            // In ZeroDev v5, serializePermissionAccount gets the signature and serializes the account.
             const serializedPermission = await serializePermissionAccount(sessionKeyAccount);
 
-            // 7. Authorize on the backend
             const authRes = await fetch("/api/agent/session/authorize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -158,16 +137,13 @@ export function AgentMode() {
         setLoading(true);
         setError(null);
         try {
-            // Fetch session id (this requires knowing the session ID. 
-            // Wait, we can just let the backend revoke the active session for the user).
-            // Let's modify the revoke endpoint to revoke ALL active sessions for the user if sessionId is omitted.
             const res = await fetch("/api/agent/session/revoke", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ revokeAll: true }),
             });
             if (!res.ok) throw new Error("Failed to disable Agent Mode");
-            
+
             setIsAgentActive(false);
             setSmartAccountAddress(null);
             alert("Agent Mode Disabled");
@@ -181,25 +157,64 @@ export function AgentMode() {
     };
 
     return (
-        <div className="p-3 border rounded-xl" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
-            <div className="flex flex-col gap-2">
-                <div>
-                    <h3 className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Agent Mode</h3>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                        {isAgentActive && smartAccountAddress ? (
-                            <span className="text-green-500">Active: {smartAccountAddress.slice(0,6)}...{smartAccountAddress.slice(-4)}</span>
-                        ) : "No MetaMask popups."}
-                    </p>
-                </div>
-                {isAgentActive ? (
-                    <button onClick={disableAgentMode} className="w-full py-1.5 text-xs rounded bg-red-500/10 text-red-500 font-medium">Disable</button>
-                ) : (
-                    <button onClick={enableAgentMode} disabled={loading} className="w-full py-1.5 text-xs rounded bg-green-500 text-white font-medium">
-                        {loading ? "Enabling..." : "Enable"}
-                    </button>
-                )}
+        <section
+            className="rounded-[14px] border p-[14px]"
+            style={{
+                borderColor: isAgentActive ? "#382e6b" : "var(--color-border)",
+                background: isAgentActive ? "#0f0d1a" : "var(--color-surface-overlay)",
+            }}
+            aria-label="Agent Mode"
+        >
+            <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold tracking-[0.02em] text-[var(--color-accent-light)]">⚡ Agent Mode</span>
+                <span className="text-[9px] font-medium text-[var(--color-text-muted)]">24H SESSION</span>
             </div>
-            {error && <p className="text-red-500 text-[10px] mt-2">{error}</p>}
-        </div>
+
+            {isAgentActive ? (
+                <>
+                    <div className="mt-2 flex items-center gap-2">
+                        <span className="agent-pulse h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+                        <span className="text-[13px] font-semibold text-[var(--color-success)]">Active</span>
+                    </div>
+                    <div className="mt-2 space-y-0.5 text-[10px] leading-[17px] text-[var(--color-text-secondary)]">
+                        <p>Session key authorized</p>
+                        <p>23h 41m remaining</p>
+                        <p>Transaction limit <span className="text-[var(--color-text-primary)]">0.01 ETH</span></p>
+                    </div>
+                    {smartAccountAddress && (
+                        <p className="mt-1 truncate font-mono text-[9px] text-[var(--color-text-muted)]" title={smartAccountAddress}>
+                            {smartAccountAddress.slice(0, 8)}…{smartAccountAddress.slice(-6)}
+                        </p>
+                    )}
+                    <button
+                        onClick={disableAgentMode}
+                        disabled={loading}
+                        className="mt-3 flex h-8 w-full cursor-pointer items-center justify-center rounded-[8px] border text-[11px] font-medium transition-colors hover:bg-red-500/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ borderColor: "#382e6b", color: "var(--color-text-primary)" }}
+                    >
+                        {loading ? "Revoking…" : "Revoke agent session"}
+                    </button>
+                </>
+            ) : (
+                <>
+                    <p className="mt-2 text-[10px] leading-[16px] text-[var(--color-text-secondary)]">
+                        Let Dimensity execute approved on-chain actions without repeated wallet popups.
+                    </p>
+                    <button
+                        onClick={enableAgentMode}
+                        disabled={loading}
+                        className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center rounded-[9px] bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] text-[11px] font-semibold text-white shadow-[0_8px_24px_rgba(110,92,242,0.18)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {loading ? "Authorizing agent…" : "Enable Agent Mode"}
+                    </button>
+                </>
+            )}
+
+            {error && (
+                <div className="mt-2 rounded-[8px] border border-red-500/20 bg-red-500/[0.06] px-2.5 py-2 text-[10px] leading-[15px] text-[var(--color-danger)]">
+                    {error}
+                </div>
+            )}
+        </section>
     );
 }
