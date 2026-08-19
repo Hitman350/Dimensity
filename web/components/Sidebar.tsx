@@ -27,6 +27,17 @@ function timeAgo(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString();
 }
 
+function DimensityMark({ small = false }: { small?: boolean }) {
+    return (
+        <div
+            className={`${small ? "h-8 w-8 rounded-[10px]" : "h-10 w-10 rounded-[12px]"} flex shrink-0 items-center justify-center bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] text-white shadow-[0_8px_24px_rgba(110,92,242,0.18)]`}
+            aria-hidden="true"
+        >
+            <span className={`${small ? "text-sm" : "text-lg"} font-bold tracking-[-0.04em]`}>D</span>
+        </div>
+    );
+}
+
 export function Sidebar({ activeId, onSelect, onNewChat }: SidebarProps) {
     const [conversations, setConversations] = useState<ConversationItem[]>([]);
     const [collapsed, setCollapsed] = useState(false);
@@ -53,9 +64,7 @@ export function Sidebar({ activeId, onSelect, onNewChat }: SidebarProps) {
             const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
             if (res.ok) {
                 setConversations((prev) => prev.filter((c) => c.id !== id));
-                if (activeId === id) {
-                    onNewChat();
-                }
+                if (activeId === id) onNewChat();
             }
         } catch (err) {
             console.error("Failed to delete conversation", err);
@@ -64,152 +73,119 @@ export function Sidebar({ activeId, onSelect, onNewChat }: SidebarProps) {
 
     if (collapsed) {
         return (
-            <div
-                className="flex flex-col items-center py-3 gap-3 border-r"
-                style={{
-                    width: "48px",
-                    background: "var(--color-surface-raised)",
-                    borderColor: "var(--color-border)",
-                }}
+            <aside
+                className="flex h-full w-14 shrink-0 flex-col items-center gap-3 border-r py-3"
+                style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}
             >
                 <button
                     onClick={() => setCollapsed(false)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-pointer transition-colors"
-                    style={{
-                        background: "var(--color-surface-overlay)",
-                        border: "1px solid var(--color-border)",
-                        color: "var(--color-text-secondary)",
-                    }}
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border text-sm transition-colors hover:bg-white/[0.04]"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
                     title="Expand sidebar"
+                    aria-label="Expand sidebar"
                 >
-                    ☰
+                    ‹
                 </button>
                 <button
                     onClick={onNewChat}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-pointer transition-colors"
-                    style={{
-                        background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-light))",
-                        color: "white",
-                    }}
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] text-lg text-white shadow-[0_8px_24px_rgba(110,92,242,0.18)]"
                     title="New chat"
+                    aria-label="New chat"
                 >
                     +
                 </button>
-            </div>
+                <div className="mt-auto">
+                    <DimensityMark small />
+                </div>
+            </aside>
         );
     }
 
     return (
-        <div
-            className="flex flex-col border-r h-full"
-            style={{
-                width: "260px",
-                minWidth: "260px",
-                background: "var(--color-surface-raised)",
-                borderColor: "var(--color-border)",
-            }}
+        <aside
+            className="flex h-full w-[272px] min-w-[272px] flex-col border-r"
+            style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}
         >
-            {/* Header */}
-            <div
-                className="flex items-center justify-between px-3 py-3 border-b"
-                style={{ borderColor: "var(--color-border)" }}
-            >
-                <span
-                    className="text-xs font-semibold tracking-wide uppercase"
-                    style={{ color: "var(--color-text-secondary)" }}
-                >
-                    Chats
-                </span>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={onNewChat}
-                        className="px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors"
-                        style={{
-                            background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-light))",
-                            color: "white",
-                        }}
-                    >
-                        + New
-                    </button>
-                    <button
-                        onClick={() => setCollapsed(true)}
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-xs cursor-pointer transition-colors"
-                        style={{
-                            color: "var(--color-text-secondary)",
-                        }}
-                        title="Collapse sidebar"
-                    >
-                        ✕
-                    </button>
+            <div className="flex items-center gap-3 px-[18px] pt-[18px]">
+                <DimensityMark />
+                <div className="min-w-0">
+                    <div className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">Dimensity</div>
+                    <div className="mt-0.5 text-[9px] font-medium tracking-[0.12em] text-[var(--color-text-muted)]">AI ON-CHAIN AGENT</div>
                 </div>
             </div>
 
-            {/* Conversation list */}
-            <div className="flex-1 overflow-y-auto py-1">
+            <div className="px-[18px] pt-5">
+                <button
+                    onClick={onNewChat}
+                    className="flex h-[42px] w-full cursor-pointer items-center rounded-[10px] bg-[var(--color-surface-overlay)] px-3.5 text-[13px] font-medium text-[var(--color-text-primary)] transition-all hover:bg-[#14141e]"
+                >
+                    <span className="mr-2 text-base text-[var(--color-accent-light)]">＋</span>
+                    New chat
+                </button>
+            </div>
+
+            <div className="flex items-center justify-between px-[18px] pb-2 pt-4">
+                <span className="text-[10px] font-semibold tracking-[0.12em] text-[var(--color-text-muted)]">RECENT</span>
+                <button
+                    onClick={() => setCollapsed(true)}
+                    className="cursor-pointer rounded-md px-1.5 py-1 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-white/[0.04] hover:text-[var(--color-text-secondary)]"
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar"
+                >
+                    ‹
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-[18px]">
                 {conversations.length === 0 && (
-                    <div
-                        className="px-3 py-6 text-center text-xs"
-                        style={{ color: "var(--color-text-secondary)" }}
-                    >
+                    <div className="rounded-[10px] border border-dashed px-3 py-5 text-center text-xs" style={{ borderColor: "var(--color-border)", color: "var(--color-text-muted)" }}>
                         No conversations yet.
                         <br />
-                        Start a new chat!
+                        Start a new chat.
                     </div>
                 )}
 
-                {conversations.map((convo) => (
-                    <button
-                        key={convo.id}
-                        onClick={() => onSelect(convo.id)}
-                        className="w-full group flex items-center gap-2 px-3 py-2.5 text-left transition-colors cursor-pointer"
-                        style={{
-                            background:
-                                convo.id === activeId
-                                    ? "var(--color-surface-overlay)"
-                                    : "transparent",
-                            borderLeft:
-                                convo.id === activeId
-                                    ? "2px solid var(--color-accent)"
-                                    : "2px solid transparent",
-                        }}
-                    >
-                        <div className="flex-1 min-w-0">
-                            <div
-                                className="text-xs font-medium truncate"
-                                style={{
-                                    color:
-                                        convo.id === activeId
-                                            ? "var(--color-text-primary)"
-                                            : "var(--color-text-secondary)",
-                                }}
-                            >
-                                {convo.title}
-                            </div>
-                            <div
-                                className="text-[10px] mt-0.5"
-                                style={{ color: "var(--color-text-secondary)", opacity: 0.6 }}
-                            >
-                                {timeAgo(convo.updated_at)}
-                            </div>
-                        </div>
-                        <button
-                            onClick={(e) => handleDelete(e, convo.id)}
-                            className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded flex items-center justify-center text-[10px] transition-opacity cursor-pointer flex-shrink-0"
-                            style={{
-                                color: "var(--color-text-secondary)",
+                <div className="space-y-1">
+                    {conversations.map((convo) => (
+                        <div
+                            key={convo.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onSelect(convo.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") onSelect(convo.id);
                             }}
-                            title="Delete"
+                            className="group relative flex min-h-[54px] w-full cursor-pointer items-center rounded-[10px] border px-3 text-left transition-all"
+                            style={{
+                                background: convo.id === activeId ? "var(--color-surface-overlay)" : "transparent",
+                                borderColor: convo.id === activeId ? "#40338c" : "transparent",
+                            }}
                         >
-                            🗑
-                        </button>
-                    </button>
-                ))}
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate text-[13px] font-medium" style={{ color: convo.id === activeId ? "var(--color-text-primary)" : "var(--color-text-secondary)" }}>
+                                    {convo.title}
+                                </div>
+                                <div className="mt-1 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                                    {timeAgo(convo.updated_at)}
+                                </div>
+                            </div>
+                            <button
+                                onClick={(e) => handleDelete(e, convo.id)}
+                                className="ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[11px] opacity-0 transition-all hover:bg-white/[0.05] group-hover:opacity-100"
+                                style={{ color: "var(--color-text-muted)" }}
+                                title="Delete conversation"
+                                aria-label={`Delete ${convo.title}`}
+                            >
+                                ×
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
 
-            {/* Agent Mode Toggle */}
-            <div className="p-3 border-t" style={{ borderColor: "var(--color-border)" }}>
+            <div className="p-[18px] pt-3">
                 <AgentMode />
             </div>
-        </div>
+        </aside>
     );
 }
