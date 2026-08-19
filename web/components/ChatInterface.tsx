@@ -7,12 +7,17 @@ import { Header } from "./Header";
 import ConfirmationModal from "./ConfirmationModal";
 import type { Message } from "ai";
 
-// Tool names that require user confirmation before execution
 const CONFIRMABLE_TOOLS = ["send_transaction", "deploy_erc20"];
 
 interface ChatInterfaceProps {
     conversationId: string | null;
 }
+
+const suggestions = [
+    { title: "Check my balance", description: "See ETH and token balances" },
+    { title: "Send ETH", description: "Execute a transfer with Agent Mode" },
+    { title: "Deploy a token", description: "Create an ERC-20 on testnet" },
+];
 
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     const [initialMessages, setInitialMessages] = useState<Message[]>([]);
@@ -26,7 +31,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             .catch(console.error);
     }, []);
 
-    // Load message history when conversationId changes
     useEffect(() => {
         if (!conversationId) {
             setInitialMessages([]);
@@ -61,7 +65,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
         };
     }, [conversationId]);
 
-    // Key forces useChat to remount when conversation or initial messages change
     const chatKey = `${conversationId ?? "new"}-${initialMessages.length}`;
 
     return (
@@ -102,27 +105,17 @@ function ChatInner({
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Auto-scroll to bottom on new messages
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages, isLoading]);
 
-    // Auto-focus input when AI finishes responding
     useEffect(() => {
-        if (!isLoading && inputRef.current) {
-            inputRef.current.focus();
-        }
+        if (!isLoading && inputRef.current) inputRef.current.focus();
     }, [isLoading]);
 
-    // Find pending tool calls that need confirmation
     const pendingToolCall = messages
         .flatMap((m) =>
-            (m.toolInvocations ?? []).map((t) => ({
-                ...t,
-                messageId: m.id,
-            }))
+            (m.toolInvocations ?? []).map((t) => ({ ...t, messageId: m.id }))
         )
         .find(
             (t) =>
@@ -136,175 +129,141 @@ function ChatInner({
     };
 
     const handleCancel = (toolCallId: string) => {
-        addToolResult({
-            toolCallId,
-            result: "User cancelled this action.",
-        });
+        addToolResult({ toolCallId, result: "User cancelled this action." });
     };
 
-    const suggestions = [
-        "What is my wallet address?",
-        "Check my balance",
-        "Deploy an ERC-20 token",
-        "Show my recent transactions",
-        "What's ETH worth right now?",
-        "What's my balance in USD?",
-    ];
+    function useSuggestion(text: string) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            "value"
+        )?.set;
+        const el = document.querySelector("#chat-input") as HTMLInputElement | null;
+        if (el && nativeInputValueSetter) {
+            nativeInputValueSetter.call(el, text);
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            el.focus();
+        }
+    }
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex h-full min-w-0 flex-col">
             <Header />
 
-            {/* Chat area */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-6"
+                className="flex-1 overflow-y-auto px-4 sm:px-8"
                 style={{ background: "var(--color-surface)" }}
             >
-                <div className="max-w-3xl mx-auto space-y-4">
+                <div className="mx-auto flex min-h-full w-full max-w-[920px] flex-col pb-6 pt-10">
                     {loadingHistory && (
-                        <div className="flex items-center justify-center py-8">
-                            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <div className="flex flex-1 items-center justify-center">
+                            <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-[var(--color-accent-light)]" />
+                                Loading conversation…
+                            </div>
                         </div>
                     )}
 
                     {!loadingHistory && messages.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center">
-                            <div
-                                className="text-5xl mb-4"
-                                style={{ filter: "grayscale(0.2)" }}
-                            >
-                                ⚡
+                        <div className="flex flex-1 flex-col items-center">
+                            <div className="mt-5 flex h-16 w-16 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] text-[28px] font-bold tracking-[-0.05em] text-white shadow-[0_16px_50px_rgba(110,92,242,0.2)]">
+                                D
                             </div>
-                            <h2
-                                className="text-xl font-semibold mb-2"
-                                style={{ color: "var(--color-text-primary)" }}
-                            >
-                                What can I do for you?
+                            <h2 className="mt-4 text-center text-[26px] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
+                                Your AI agent for on-chain actions
                             </h2>
-                            <p
-                                className="text-sm max-w-md"
-                                style={{ color: "var(--color-text-secondary)" }}
-                            >
-                                Send ETH, deploy tokens, scan contracts, check balances — just
-                                describe what you need in plain English.
+                            <p className="mt-2 max-w-[430px] text-center text-[13px] leading-5 text-[var(--color-text-secondary)]">
+                                Ask questions, inspect your wallet, or let Dimensity execute transactions through your authorized agent session.
                             </p>
-                            <div className="grid grid-cols-2 gap-2 mt-6 text-xs">
+
+                            <div className="mt-4 flex flex-wrap justify-center gap-2">
+                                {[
+                                    ["Explore", "Ask about your wallet"],
+                                    ["Execute", "Send or deploy"],
+                                    ["Analyze", "Inspect on-chain data"],
+                                ].map(([label, description]) => (
+                                    <span key={label} className="rounded-[9px] border px-3 py-2 text-[10px]" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-overlay)", color: "var(--color-text-secondary)" }} title={description}>
+                                        {label}
+                                    </span>
+                                ))}
+                            </div>
+
+                            <div className="mt-10 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
                                 {suggestions.map((suggestion) => (
                                     <button
-                                        key={suggestion}
+                                        key={suggestion.title}
                                         type="button"
-                                        onClick={() => {
-                                            const nativeInputValueSetter =
-                                                Object.getOwnPropertyDescriptor(
-                                                    window.HTMLInputElement.prototype,
-                                                    "value"
-                                                )?.set;
-                                            const el = document.querySelector(
-                                                "#chat-input"
-                                            ) as HTMLInputElement;
-                                            if (el && nativeInputValueSetter) {
-                                                nativeInputValueSetter.call(el, suggestion);
-                                                el.dispatchEvent(
-                                                    new Event("input", { bubbles: true })
-                                                );
-                                            }
-                                        }}
-                                        className="px-3 py-2 rounded-lg text-left transition-colors cursor-pointer"
-                                        style={{
-                                            background: "var(--color-surface-raised)",
-                                            border: "1px solid var(--color-border)",
-                                            color: "var(--color-text-secondary)",
-                                        }}
+                                        onClick={() => useSuggestion(suggestion.title)}
+                                        className="group rounded-[12px] border p-3.5 text-left transition-all hover:-translate-y-px hover:border-[#37344e] hover:bg-[#0f0f18]"
+                                        style={{ background: "var(--color-surface-soft)", borderColor: "var(--color-border)" }}
                                     >
-                                        {suggestion}
+                                        <div className="text-[12px] font-medium text-[var(--color-text-primary)]">{suggestion.title}</div>
+                                        <div className="mt-1.5 text-[10px] leading-4 text-[var(--color-text-muted)]">{suggestion.description}</div>
                                     </button>
                                 ))}
                             </div>
+
+                            {!isAgentActive && (
+                                <div className="mt-5 flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] text-[var(--color-text-muted)]" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-raised)" }}>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text-muted)]" />
+                                    Agent Mode is off — read-only wallet questions are still available
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {messages.map((message) => (
-                        <MessageBubble key={message.id} message={message} />
-                    ))}
+                    {messages.length > 0 && (
+                        <div className="space-y-5">
+                            {messages.map((message) => (
+                                <MessageBubble key={message.id} message={message} />
+                            ))}
+                        </div>
+                    )}
 
                     {isLoading && (
-                        <div className="flex items-start gap-3 animate-message-in">
-                            <div
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                                style={{ background: "var(--color-accent)", color: "white" }}
-                            >
-                                D
-                            </div>
-                            <div
-                                className="px-4 py-3 rounded-xl"
-                                style={{ background: "var(--color-surface-raised)" }}
-                            >
-                                <div className="flex gap-1">
-                                    <span className="loading-dot" />
-                                    <span className="loading-dot" />
-                                    <span className="loading-dot" />
-                                </div>
+                        <div className="mt-5 flex items-start gap-3 animate-message-in">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] text-sm font-bold text-white">D</div>
+                            <div className="rounded-[12px] border px-4 py-3" style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}>
+                                <div className="flex gap-1"><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div>
                             </div>
                         </div>
                     )}
 
                     {error && (
-                        <div
-                            className="text-sm px-4 py-2 rounded-lg animate-message-in"
-                            style={{
-                                background: "rgba(239, 68, 68, 0.1)",
-                                border: "1px solid rgba(239, 68, 68, 0.3)",
-                                color: "#f87171",
-                            }}
-                        >
-                            Error: {error.message}
+                        <div className="mt-5 rounded-[10px] border px-3.5 py-3 text-xs leading-5 animate-message-in" style={{ background: "rgba(240,100,120,0.06)", borderColor: "rgba(240,100,120,0.2)", color: "var(--color-danger)" }}>
+                            <span className="font-medium">Something went wrong.</span> {error.message}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Input area */}
-            <div
-                className="border-t px-4 py-3"
-                style={{
-                    borderColor: "var(--color-border)",
-                    background: "var(--color-surface-raised)",
-                }}
-            >
-                <form
-                    onSubmit={handleSubmit}
-                    className="max-w-3xl mx-auto flex items-center gap-2"
-                >
-                    <input
-                        ref={inputRef}
-                        id="chat-input"
-                        type="text"
-                        value={input}
-                        onChange={handleInputChange}
-                        placeholder="Ask Dimensity anything about your wallet..."
-                        disabled={isLoading}
-                        className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-colors placeholder:text-[var(--color-text-secondary)]"
-                        style={{
-                            background: "var(--color-surface-overlay)",
-                            border: "1px solid var(--color-border)",
-                            color: "var(--color-text-primary)",
-                        }}
-                    />
-                    <button
-                        type="submit"
-                        disabled={isLoading || !input.trim()}
-                        className="px-5 py-3 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-40 cursor-pointer"
-                        style={{
-                            background: `linear-gradient(135deg, var(--color-accent), var(--color-accent-light))`,
-                        }}
-                    >
-                        Send
-                    </button>
+            <div className="shrink-0 border-t px-4 pb-3 pt-3 sm:px-8" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+                <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[920px]">
+                    <div className="flex items-center gap-2 rounded-[16px] border p-2 transition-colors focus-within:border-[#403b62]" style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}>
+                        <input
+                            ref={inputRef}
+                            id="chat-input"
+                            type="text"
+                            value={input}
+                            onChange={handleInputChange}
+                            placeholder="Ask Dimensity to inspect or act on your wallet…"
+                            disabled={isLoading}
+                            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                        />
+                        <button
+                            type="submit"
+                            disabled={isLoading || !input.trim()}
+                            className="h-10 shrink-0 cursor-pointer rounded-[10px] bg-[linear-gradient(135deg,#7b69ff,#5c4be4)] px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(110,92,242,0.16)] transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0"
+                        >
+                            {isLoading ? "Working…" : "Send"}
+                        </button>
+                    </div>
+                    <p className="mt-2 text-[10px] text-[var(--color-text-muted)]">
+                        {isAgentActive ? "Agent actions are protected by your active session permissions." : "Enable Agent Mode when you want Dimensity to execute on-chain actions."}
+                    </p>
                 </form>
             </div>
 
-            {/* Confirmation Modal — shown when a tool call needs user approval */}
             {pendingToolCall && (
                 <ConfirmationModal
                     toolCall={pendingToolCall}
