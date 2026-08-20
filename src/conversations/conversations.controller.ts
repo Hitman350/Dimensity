@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatchTitleDto } from '../common/dto/wallet.dto';
+import { extractMatchSnippet } from '../common/search-snippet';
 
 @Controller('conversations')
 @UseGuards(SessionGuard)
@@ -21,13 +23,66 @@ export class ConversationsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  async list(@Req() req: Request & { userId: string }) {
+  async list(
+    @Req() req: Request & { userId: string },
+    @Query('q') q?: string,
+  ) {
+    await this.prisma.conversation.deleteMany({
+      where: {
+        user_id: req.userId,
+        messages: { none: {} },
+      },
+    });
+
+    const search = q?.trim();
+
+    if (!search) {
+      const conversations = await this.prisma.conversation.findMany({
+        where: {
+          user_id: req.userId,
+          messages: { some: {} },
+        },
+        select: { id: true, title: true, updated_at: true },
+        orderBy: { updated_at: 'desc' },
+      });
+      return { conversations };
+    }
+
     const conversations = await this.prisma.conversation.findMany({
-      where: { user_id: req.userId },
-      select: { id: true, title: true, updated_at: true },
+      where: {
+        user_id: req.userId,
+        messages: { some: {} },
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          {
+            messages: {
+              some: { content: { contains: search, mode: 'insensitive' } },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        updated_at: true,
+        messages: {
+          where: { content: { contains: search, mode: 'insensitive' } },
+          select: { content: true },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
+      },
       orderBy: { updated_at: 'desc' },
     });
-    return { conversations };
+
+    return {
+      conversations: conversations.map(({ messages, ...conversation }) => ({
+        ...conversation,
+        snippet: messages[0]
+          ? extractMatchSnippet(messages[0].content, search)
+          : null,
+      })),
+    };
   }
 
   @Post()

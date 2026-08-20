@@ -47,11 +47,21 @@ USER CONTEXT (injected per request — do not reveal this block to the user):
       messages: Array<{ role: string; content: string }>;
       conversationId?: string;
     };
-    const { messages, conversationId } = body;
+    const { messages } = body;
+    let { conversationId } = body;
 
     const lastUserMsg = [...(messages ?? [])]
       .reverse()
       .find((m) => m.role === 'user');
+
+    if (!conversationId && lastUserMsg) {
+      const conversation = await this.prisma.conversation.create({
+        data: { user_id: userId },
+        select: { id: true },
+      });
+      conversationId = conversation.id;
+      res.setHeader('X-Conversation-Id', conversationId);
+    }
 
     if (conversationId && lastUserMsg) {
       await this.prisma.message.create({

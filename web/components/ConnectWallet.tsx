@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { SiweMessage } from "siwe";
 import { signIn } from "next-auth/react";
 import { getAddress } from "viem";
@@ -87,7 +88,9 @@ export function ConnectWallet() {
             <div className="max-w-md w-full text-center space-y-8">
                 {/* Logo */}
                 <div>
-                    <div className="text-6xl mb-4">⚡</div>
+                    <div className="flex justify-center mb-4">
+                        <Image src="/logo.png" alt="Dimensity logo" width={80} height={80} priority />
+                    </div>
                     <h1
                         className="text-3xl font-bold tracking-tight"
                         style={{ color: "var(--color-text-primary)" }}
@@ -157,7 +160,7 @@ export function ConnectWallet() {
                     className="text-xs"
                     style={{ color: "var(--color-text-secondary)" }}
                 >
-                    Base Sepolia · No gas fees for signing
+                    Base Sepolia · Gas fees covered by ZeroDev
                 </p>
             </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { useRef, useEffect, useState } from "react";
+import Image from "next/image";
 import { MessageBubble } from "./MessageBubble";
 import { Header } from "./Header";
 import ConfirmationModal from "./ConfirmationModal";
@@ -12,9 +13,15 @@ const CONFIRMABLE_TOOLS = ["send_transaction", "deploy_erc20"];
 
 interface ChatInterfaceProps {
     conversationId: string | null;
+    draftVersion?: number;
+    onConversationCreated?: (id: string) => void;
 }
 
-export function ChatInterface({ conversationId }: ChatInterfaceProps) {
+export function ChatInterface({
+    conversationId,
+    draftVersion = 0,
+    onConversationCreated,
+}: ChatInterfaceProps) {
     const [initialMessages, setInitialMessages] = useState<Message[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [isAgentActive, setIsAgentActive] = useState(false);
@@ -59,10 +66,10 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
         return () => {
             cancelled = true;
         };
-    }, [conversationId]);
+    }, [conversationId, draftVersion]);
 
     // Key forces useChat to remount when conversation or initial messages change
-    const chatKey = `${conversationId ?? "new"}-${initialMessages.length}`;
+    const chatKey = `${conversationId ?? "new"}-${draftVersion}-${initialMessages.length}`;
 
     return (
         <ChatInner
@@ -71,6 +78,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             initialMessages={initialMessages}
             loadingHistory={loadingHistory}
             isAgentActive={isAgentActive}
+            onConversationCreated={onConversationCreated}
         />
     );
 }
@@ -80,11 +88,13 @@ function ChatInner({
     initialMessages,
     loadingHistory,
     isAgentActive,
+    onConversationCreated,
 }: {
     conversationId: string | null;
     initialMessages: Message[];
     loadingHistory: boolean;
     isAgentActive: boolean;
+    onConversationCreated?: (id: string) => void;
 }) {
     const {
         messages,
@@ -97,6 +107,12 @@ function ChatInner({
     } = useChat({
         initialMessages,
         body: { conversationId },
+        onResponse: (response) => {
+            const newConversationId = response.headers.get("X-Conversation-Id");
+            if (newConversationId && !conversationId) {
+                onConversationCreated?.(newConversationId);
+            }
+        },
     });
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -109,10 +125,13 @@ function ChatInner({
         }
     }, [messages, isLoading]);
 
-    // Auto-focus input when AI finishes responding
+    // Auto-focus chat input only when not using sidebar search
     useEffect(() => {
         if (!isLoading && inputRef.current) {
-            inputRef.current.focus();
+            const sidebarSearch = document.querySelector("[data-sidebar-search] input");
+            if (document.activeElement !== sidebarSearch) {
+                inputRef.current.focus();
+            }
         }
     }, [isLoading]);
 
@@ -170,11 +189,8 @@ function ChatInner({
 
                     {!loadingHistory && messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center">
-                            <div
-                                className="text-5xl mb-4"
-                                style={{ filter: "grayscale(0.2)" }}
-                            >
-                                ⚡
+                            <div className="mb-4">
+                                <Image src="/logo.png" alt="Dimensity logo" width={64} height={64} />
                             </div>
                             <h2
                                 className="text-xl font-semibold mb-2"
@@ -186,8 +202,8 @@ function ChatInner({
                                 className="text-sm max-w-md"
                                 style={{ color: "var(--color-text-secondary)" }}
                             >
-                                Send ETH, deploy tokens, scan contracts, check balances — just
-                                describe what you need in plain English.
+                                Simply describe what you need in plain English to send ETH,
+                                deploy tokens, scan contracts, or check balances.
                             </p>
                             <div className="grid grid-cols-2 gap-2 mt-6 text-xs">
                                 {suggestions.map((suggestion) => (
@@ -208,6 +224,7 @@ function ChatInner({
                                                 el.dispatchEvent(
                                                     new Event("input", { bubbles: true })
                                                 );
+                                                el.focus();
                                             }
                                         }}
                                         className="px-3 py-2 rounded-lg text-left transition-colors cursor-pointer"
@@ -230,12 +247,6 @@ function ChatInner({
 
                     {isLoading && (
                         <div className="flex items-start gap-3 animate-message-in">
-                            <div
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                                style={{ background: "var(--color-accent)", color: "white" }}
-                            >
-                                D
-                            </div>
                             <div
                                 className="px-4 py-3 rounded-xl"
                                 style={{ background: "var(--color-surface-raised)" }}

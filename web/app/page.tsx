@@ -9,17 +9,15 @@ import { Sidebar } from "@/components/Sidebar";
 export default function Home() {
     const { data: session, status } = useSession();
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [draftVersion, setDraftVersion] = useState(0);
 
-    const handleNewChat = useCallback(async () => {
-        try {
-            const res = await fetch("/api/conversations", { method: "POST" });
-            if (res.ok) {
-                const data = await res.json();
-                setActiveConversationId(data.id);
-            }
-        } catch (err) {
-            console.error("Failed to create conversation", err);
-        }
+    const handleNewChat = useCallback(() => {
+        setActiveConversationId(null);
+        setDraftVersion((current) => current + 1);
+    }, []);
+
+    const handleConversationCreated = useCallback((id: string) => {
+        setActiveConversationId(id);
     }, []);
 
     const handleSelectConversation = useCallback((id: string) => {
@@ -67,7 +65,11 @@ export default function Home() {
                 onNewChat={handleNewChat}
             />
             <div className="flex-1 flex flex-col min-w-0">
-                <ChatInterface conversationId={activeConversationId} />
+                <ChatInterface
+                    conversationId={activeConversationId}
+                    draftVersion={draftVersion}
+                    onConversationCreated={handleConversationCreated}
+                />
             </div>
         </main>
     );

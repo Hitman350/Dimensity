@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { SiweMessage } from "siwe";
 import { getAddress } from "viem";
@@ -149,16 +150,7 @@ export function Header() {
         >
             {/* Left — Logo */}
             <div className="flex items-center gap-3">
-                <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold"
-                    style={{
-                        background:
-                            "linear-gradient(135deg, var(--color-accent), var(--color-accent-light))",
-                        color: "white",
-                    }}
-                >
-                    D
-                </div>
+                <Image src="/logo.png" alt="Dimensity logo" width={36} height={36} />
                 <div>
                     <h1
                         className="text-sm font-semibold"
@@ -170,7 +162,7 @@ export function Header() {
                         className="text-xs"
                         style={{ color: "var(--color-text-secondary)" }}
                     >
-                        Base Sepolia • AI Agent
+                        Base Sepolia • Gasless
                     </p>
                 </div>
             </div>

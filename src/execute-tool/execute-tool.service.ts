@@ -1,14 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import {
   parseEther,
+  parseUnits,
   formatEther,
   formatGwei,
+  encodeDeployData,
   createPublicClient,
   http,
 } from "viem";
 import { baseSepolia } from "viem/chains";
 import { PrismaService } from "../prisma/prisma.service";
 import { PermissionedAccountService } from "../blockchain/permissioned-account.service";
+import { ERC20_ABI, ERC20_BYTECODE } from "../lib/contract";
 import type { KernelAccountClient } from "@zerodev/sdk";
 
 type ToolHandler = (
@@ -41,12 +44,40 @@ const handlers: Record<string, ToolHandler> = {
   },
 
   deploy_erc20: async ({ name, symbol, initialSupply }, client) => {
-    // Note: To deploy a contract with KernelAccountClient, we can pass the bytecode and args as data to the zero address (or no 'to' field)
-    // However, viem's encodeDeployData is usually needed.
-    // This requires specific implementation, but for now we throw since agent needs ERC20 factory or encodeDeployData.
-    throw new Error(
-      "deploy_erc20 via Session Key requires factory/encodeDeployData setup",
-    );
+    const supply = initialSupply || "1000000000";
+    const deployData = encodeDeployData({
+      abi: ERC20_ABI,
+      bytecode: ERC20_BYTECODE,
+      args: [name, symbol, parseUnits(supply, 18)],
+    });
+
+    const userOpHash = await client
+      .sendUserOperation({
+        calls: [
+          {
+            to: "0x" as `0x${string}`,   // zero-address signals contract creation
+            data: deployData,
+            value: 0n,
+          },
+        ],
+      })
+      .catch((err: any) => {
+        console.error("deploy_erc20 sendUserOperation error:", err);
+        if (err.details) console.error("Error details:", err.details);
+        throw err;
+      });
+
+    const receipt = await client.waitForUserOperationReceipt({
+      hash: userOpHash,
+    });
+
+    // Extract deployed contract address from receipt logs
+    const contractAddress =
+      receipt.receipt.contractAddress ??
+      receipt.receipt.logs?.[0]?.address ??
+      "unknown";
+
+    return `ERC-20 token deployed successfully.\nToken: ${name} (${symbol})\nSupply: ${Number(supply).toLocaleString()}\nContract: ${contractAddress}\nTx Hash: ${receipt.receipt.transactionHash}\nhttps://sepolia.basescan.org/address/${contractAddress}\nhttps://sepolia.basescan.org/tx/${receipt.receipt.transactionHash}`;
   },
 };
 

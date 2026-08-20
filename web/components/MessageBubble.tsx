@@ -163,12 +163,6 @@ export function MessageBubble({ message }: { message: Message }) {
 
     return (
         <div className="flex items-start gap-3 animate-message-in">
-            <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
-                style={{ background: "var(--color-accent)", color: "white" }}
-            >
-                D
-            </div>
             <div className="max-w-[80%] space-y-2">
 
                 {/* Text content — rendered as markdown */}

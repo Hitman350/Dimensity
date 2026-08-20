@@ -3,6 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
+    icons: { icon: "/logo.png" },
     title: "Dimensity — AI On-Chain Agent",
     description:
         "Autonomous AI agent for blockchain operations on Base Sepolia. Send ETH, deploy tokens, scan contracts — all through natural language.",
