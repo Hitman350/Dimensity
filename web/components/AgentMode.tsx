@@ -51,7 +51,7 @@ export function AgentMode() {
                 transport: http(),
             });
 
-            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+            const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
             const ownerAddress = accounts[0];
 
             // 2.5 Ensure MetaMask is on Base Sepolia (84532 -> 0x14a34)

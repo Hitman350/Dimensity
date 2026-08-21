@@ -101,7 +101,7 @@ export default function ConfirmationModal({
                 }
 
                 const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
-                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
                 const ownerAddress = accounts[0];
 
                 try {
